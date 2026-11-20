@@ -29,7 +29,7 @@ for this repo with the firmware profile. Stop at every STOP (human) step."*
 | Arm GNU toolchain, CMake, Ninja, OpenOCD | C/C++ firmware | `apt install cmake ninja-build openocd` + Arm toolchain | `pacman -S arm-none-eabi-gcc arm-none-eabi-newlib cmake ninja openocd` | `brew install --cask gcc-arm-embedded; brew install cmake ninja open-ocd` | Arm toolchain installer + `winget install Kitware.CMake Ninja-build.Ninja` |
 | rustup, probe-rs | Rust | rustup.rs, probe.rs | `pacman -S rustup`, probe-rs from probe.rs | rustup.rs, probe.rs | rustup.rs, probe.rs |
 | typst, typstyle | Typst docs | `cargo install typst-cli typstyle --locked` | `pacman -S typst typstyle` | `brew install typst typstyle` | `winget install Typst.Typst`, `cargo install typstyle --locked` |
-| Node.js 22+ and npm | Astro sites | nodejs.org (LTS; the apt package can be too old) | `pacman -S nodejs npm` | `brew install node` | `winget install OpenJS.NodeJS.LTS` |
+| Node.js 22.13+ or 24+, and npm | Astro sites | nodejs.org (LTS; the apt package can be too old) | `pacman -S nodejs npm` | `brew install node` | `winget install OpenJS.NodeJS.LTS` |
 
 On Arch/Omarchy, use the Microsoft VS Code build. The open-source `code` package can't install
 Pylance, the C/C++ debugger, Remote-SSH or Dev Containers. On Arch, ROS 2 runs in the dev container.

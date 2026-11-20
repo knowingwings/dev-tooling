@@ -26,7 +26,7 @@ name = "prettier"
 run = "npx --no-install prettier --check ."
 needs = ["npx"]
 summary = '(Code style issues found in \d+ files?)'
-errors = '^\[warn\] (?!Code style issues)'
+errors = '^\[(warn|error)\] (?!Code style issues)'
 
 [[check.step]]
 name = "astro-check"

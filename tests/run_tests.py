@@ -235,7 +235,16 @@ def eslint(d: Path) -> Counter[str]:
 
 
 def prettier(d: Path) -> Counter[str]:
-    out = run(["npx", "--no-install", "prettier", "--check", "."], d)
+    p = subprocess.run(
+        ["npx", "--no-install", "prettier", "--check", "."],
+        cwd=d,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    out = p.stdout + p.stderr
+    if p.returncode not in (0, 1) or re.search(r"^\[error\]", out, re.M):
+        raise RuntimeError(f"prettier failed (exit {p.returncode}):\n{out}")
     return Counter(
         {"prettier:unformatted": len(re.findall(r"^\[warn\] (?!Code style)", out, re.M))}
     )

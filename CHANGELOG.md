@@ -9,6 +9,7 @@
   dependencies, run with `npx --no-install`, so `package-lock.json` sets the versions.
 - SETUP.md gives an install command with versions that work together: TypeScript 6.0 (for
   `typescript-eslint`) and `eslint-plugin-jsx-a11y-x` (accessibility rules that support ESLint 10).
+  The tools need Node.js 22.13+ or 24+ (`prettier-plugin-astro` and ESLint 10).
 - VS Code settings and tasks for the Astro, ESLint and Prettier extensions. `tests/run_tests.py`
   checks the rules against the fixtures in `tests/fixtures/astro`.
 - `./check` removes colour codes from a step's output before it matches the `summary` and `errors`
