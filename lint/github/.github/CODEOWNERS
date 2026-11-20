@@ -17,3 +17,4 @@
 /rust-toolchain.toml        @OWNER
 /cmake/warnings.cmake       @OWNER
 /.typst-version             @OWNER
+/.dev-tooling-version       @OWNER

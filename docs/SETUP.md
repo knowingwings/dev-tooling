@@ -176,7 +176,7 @@ Code Owners. Without this rule, the checks below give advice but do not stop a m
 | No direct pushes to `main` | `check-branch` hook, branch protection | open a PR instead |
 | PR title is a Conventional Commit (it becomes the squash-merge commit) | `pr-checks` | `fix(imu): use sensor timestamp for fusion` |
 | PR **Evidence** filled in, exactly one **Risk** box ticked | `pr-checks` | test output, sim/bag run, plot, before/after |
-| Changes to the checks (lint configs, `AGENTS.md`, `.github/`) in their own PR | `pr-checks`, CODEOWNERS | `chore(lint): ban HAL_Delay outside init` |
+| Changes to the checks (lint configs, `AGENTS.md`, `.github/`) in their own PR, except a kit adoption or update (it changes `.dev-tooling-version`) | `pr-checks`, CODEOWNERS | `chore(lint): ban HAL_Delay outside init` |
 
 The workflow is trunk-based: short branches merged into `main` with squash merges, releases cut from
 `v*` tags. To keep a `develop` integration branch, add it to `protected_branches` in the `[git]` table
@@ -194,9 +194,12 @@ Every profile gets three more hooks. They run on commit, and `./check` runs them
 
 - `typos` checks the spelling in Markdown, Typst, rst and text files. `_typos.toml` sets British
   English. Put names from code or products in backticks, or add them to `[default.extend-words]`.
+  In `.typ` files, typos accepts the Typst words `center`, `color` and `gray`, because it can't tell
+  Typst code from prose.
 - `check-prose` checks the ASD-STE100 length rules on the doc blocks that you change. A descriptive
   sentence has 25 words or fewer, and a numbered step has 20 words or fewer. A paragraph has 6
-  sentences or fewer. Use `[prose]` in `patterns.toml` to change the paths or the limits.
+  sentences or fewer. A problem that the doc already had is not reported when the change keeps its
+  length, for example a spelling fix. Use `[prose]` in `patterns.toml` to change the paths or the limits.
 - `check-secrets` stops private keys and known token formats. It also stops literal values for
   secret variables in env files.
 

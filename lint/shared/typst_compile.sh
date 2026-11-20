@@ -14,17 +14,6 @@ set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
-command -v typst >/dev/null || { echo "typst not found: see docs/SETUP.md (Typst) to install it" >&2; exit 2; }
-
-if [[ -f .typst-version ]]; then
-  want="$(tr -d '[:space:]' < .typst-version)"
-  have="$(typst --version | awk '{print $2}')"
-  if [[ "$have" != "$want" ]]; then
-    echo "This repo pins Typst $want (.typst-version) but you have $have." >&2
-    echo "Install $want (e.g. 'typst update $want'), or bump .typst-version in its own commit and check the PDFs." >&2
-    exit 1
-  fi
-fi
 
 entries=()
 if [[ -f .typst-entries ]]; then
@@ -36,6 +25,18 @@ else
   while IFS= read -r f; do entries+=("$f"); done < <(git ls-files '*main.typ')
 fi
 [[ ${#entries[@]} -eq 0 ]] && { echo "typst_compile: no entry documents (add .typst-entries)"; exit 0; }
+
+command -v typst >/dev/null || { echo "typst not found: see docs/SETUP.md (Typst) to install it" >&2; exit 2; }
+
+if [[ -f .typst-version ]]; then
+  want="$(tr -d '[:space:]' < .typst-version)"
+  have="$(typst --version | awk '{print $2}')"
+  if [[ "$have" != "$want" ]]; then
+    echo "This repo pins Typst $want (.typst-version) but you have $have." >&2
+    echo "Install $want (e.g. 'typst update $want'), or bump .typst-version in its own commit and check the PDFs." >&2
+    exit 1
+  fi
+fi
 
 font_args=()
 [[ "${TYPST_SYSTEM_FONTS:-0}" == 1 ]] || font_args+=(--ignore-system-fonts)

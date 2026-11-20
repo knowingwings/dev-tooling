@@ -16,8 +16,8 @@ Steps come from [[check.step]] tables in patterns.toml:
     requires_path = "build-host"       # skipped if this path doesn't exist
 
 `{changed}` in a command expands to the files changed on this branch (against [check] base,
-default origin/main) plus uncommitted and untracked files. A step whose command uses `{changed}`
-is skipped when nothing has changed.
+default the remote's default branch, origin/HEAD) plus uncommitted and untracked files. A step
+whose command uses `{changed}` is skipped when nothing has changed.
 
     dev-check              run every step
     dev-check --quick      skip slow steps while iterating
@@ -76,7 +76,7 @@ def load_steps(root: Path, config: Path | None) -> tuple[list[Step], str]:
     steps = [Step(**{k: v for k, v in s.items() if k in fields}) for s in data.get("step", [])]
     if not steps:
         sys.exit(f"dev-check: no [[check.step]] tables in {cfg_file.name}")
-    return steps, data.get("base", "origin/main")
+    return steps, data.get("base", "")
 
 
 def _git(root: Path, *args: str) -> str:
@@ -85,6 +85,17 @@ def _git(root: Path, *args: str) -> str:
         return ""
     p = subprocess.run([git, *args], cwd=root, capture_output=True, text=True, check=False)
     return p.stdout if p.returncode == 0 else ""
+
+
+def default_base(root: Path) -> str:
+    """The remote's default branch (origin/HEAD), else the first of main or master that exists."""
+    head = _git(root, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").strip()
+    if head:
+        return head
+    for ref in ("origin/main", "origin/master", "main", "master"):
+        if _git(root, "rev-parse", "--verify", "--quiet", ref).strip():
+            return ref
+    return "origin/main"
 
 
 def changed_files(root: Path, base: str) -> list[str]:
@@ -175,7 +186,7 @@ def main() -> int:
     if unknown:
         sys.exit(f"dev-check: unknown step(s): {', '.join(sorted(unknown))} (see --list)")
 
-    changed = changed_files(root, base)
+    changed = changed_files(root, base or default_base(root))
     results: list[Result] = []
     for step in steps:
         if only and step.name not in only:
