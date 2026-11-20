@@ -1,0 +1,51 @@
+# pre-commit install && pre-commit install --hook-type pre-push
+# Prettier formats and ESLint lints on commit; astro check type-checks the site on push. They run
+# from the project's node_modules, so run `npm ci` first.
+exclude: ^(dist|\.astro|node_modules)/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=2048]   # optimise images before you commit them; build output goes in dist/
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (format)
+        entry: npx --no-install prettier --write --ignore-unknown
+        language: system
+        files: \.(astro|[cm]?[jt]sx?|css|scss|json)$
+
+      - id: eslint
+        name: eslint
+        entry: npx --no-install eslint --max-warnings=0
+        language: system
+        files: \.(astro|[cm]?[jt]sx?)$
+
+      - id: astro-check
+        name: astro check (types)
+        entry: npx --no-install astro check
+        language: system
+        files: \.(astro|[cm]?[jt]sx?|mdx?)$
+        pass_filenames: false
+        stages: [pre-push]
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.52.2
+    hooks:
+      - id: typos             # British spelling in docs; settings in _typos.toml
+        args: [--force-exclude]
+        files: \.(md|mdx|markdown|rst|txt)$
+
+  - repo: https://github.com/knowingwings/dev-tooling
+    rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
+    hooks:
+      - id: check-branch
+      - id: check-prose
+      - id: check-secrets

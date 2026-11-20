@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "check: every step (./check)",
+      "type": "shell",
+      "command": "./check",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "astro: dev server",
+      "type": "shell",
+      "command": "npx --no-install astro dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "astro: check types",
+      "type": "shell",
+      "command": "npx --no-install astro check",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint: eslint",
+      "type": "shell",
+      "command": "npx --no-install eslint .",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "format: prettier",
+      "type": "shell",
+      "command": "npx --no-install prettier --write .",
+      "problemMatcher": []
+    }
+  ]
+}

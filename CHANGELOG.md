@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**New: `astro` profile, for Astro websites**
+- ESLint 10 (JavaScript, `typescript-eslint`, Astro and accessibility recommended rules, and bans on
+  `any`, `==` and `console.log`), Prettier with the Astro plugin, and `astro check` for types.
+- `./check` runs hooks, eslint, prettier, astro-check and build. The tools are the project's dev
+  dependencies, run with `npx --no-install`, so `package-lock.json` sets the versions.
+- SETUP.md gives an install command with versions that work together: TypeScript 6.0 (for
+  `typescript-eslint`) and `eslint-plugin-jsx-a11y-x` (accessibility rules that support ESLint 10).
+- VS Code settings and tasks for the Astro, ESLint and Prettier extensions. `tests/run_tests.py`
+  checks the rules against the fixtures in `tests/fixtures/astro`.
+- `./check` removes colour codes from a step's output before it matches the `summary` and `errors`
+  patterns, and in the log. `astro check` colours its output even when it isn't a terminal.
+- SETUP.md: on Arch, typstyle is a pacman package (`pacman -S typst typstyle`).
+
 **Fixes: a project's adoption PR now passes the kit's own checks**
 - `check-pr`: a PR that changes `.dev-tooling-version` (a kit adoption or update) can change the
   checks and other files together. `.dev-tooling-version` is now a protected path and in CODEOWNERS,

@@ -1,0 +1,8 @@
+eslint:@typescript-eslint/no-explicit-any 2
+eslint:astro/jsx-a11y/alt-text 1
+eslint:astro/jsx-a11y/anchor-is-valid 1
+eslint:astro/jsx-a11y/click-events-have-key-events 1
+eslint:astro/jsx-a11y/no-static-element-interactions 1
+eslint:eqeqeq 2
+eslint:no-console 2
+prettier:unformatted 1

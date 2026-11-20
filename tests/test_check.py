@@ -111,6 +111,26 @@ class DevCheck(unittest.TestCase):
         p = dev_check(self.d, "--only", "on-changed")
         self.assertIn("b.txt", p.stdout)
 
+    def test_colour_codes_are_stripped(self) -> None:
+        red, bold, off = "\\\\033[91m", "\\\\033[1m", "\\\\033[0m"
+        run = f"printf '{red}error{off} src/a.ts:3 bad\\\\n- {bold}1 error{off}\\\\n'; exit 1"
+        steps = f"""
+            [[check.step]]
+            name = "coloured"
+            run = "{run}"
+            errors = '^error '
+            summary = '^- (\\d+ errors?)'
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            make_repo(d, steps)
+            p = dev_check(d)
+            self.assertIn("FAIL  coloured", p.stdout)
+            self.assertTrue(self.line(p.stdout, "coloured").endswith("  1 error"))
+            self.assertIn("      error src/a.ts:3 bad", p.stdout)
+            self.assertNotIn("\x1b", p.stdout)
+            self.assertNotIn("\x1b", (d / ".dev-check/coloured.log").read_text())
+
     def test_base_is_the_remote_default_branch(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             remote, clone = Path(tmp) / "remote.git", Path(tmp) / "clone"

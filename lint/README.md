@@ -1,6 +1,7 @@
-# Lint profiles: ROS 2, embedded C/C++, Rust, Python, Typst
+# Lint profiles: ROS 2, embedded C/C++, Rust, Python, Typst, Astro
 
-Profiles: `ros2/`, `firmware/` (C/C++), `rust/` (host + `rust/embedded/`), `python/` (standalone projects).
+Profiles: `ros2/`, `firmware/` (C/C++), `rust/` (host + `rust/embedded/`), `python/` (standalone projects),
+`typst/` (documents) and `astro/` (websites).
 All of them share the `check-patterns`, `check-comments` and `clang-tidy` hooks, and an AGENTS.md
 built from `agents/base.md` plus the profile's own section.
 
@@ -29,6 +30,16 @@ For test rigs, HIL scripts, serial/CAN tools and analysis (ROS 2 Python packages
   pre-commit agree). Astral's `ty` is faster but still in beta, so it's worth trying later.
 - pytest with a `hardware` marker that is **deselected by default**. `pytest` is what an agent runs,
   and it never touches a device. Run `pytest -m hardware` when you want to run the hardware tests.
+
+## Astro (`astro/`)
+For Astro websites in TypeScript, with Markdown or MDX content.
+- ESLint (flat config, `eslint.config.mjs`) with the JavaScript, `typescript-eslint`, Astro and
+  accessibility recommended rules, plus bans on `any`, `==` and `console.log`. The accessibility
+  rules come from `eslint-plugin-jsx-a11y-x`, the maintained fork that supports ESLint 10.
+- Prettier with `prettier-plugin-astro` formats code on commit. Markdown and MDX are left as they are.
+- `astro check` type-checks `.astro` and `.ts` files on push, and `./check` also runs `astro build`.
+- The tools are the project's own dev dependencies and run through `npx --no-install`, so the
+  versions come from `package-lock.json`, the same as `uv run` for Python.
 
 ---
 

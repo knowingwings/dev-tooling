@@ -225,12 +225,42 @@ def prof_typst(d: Path) -> Counter[str]:
     return typst_compile(d) + typstyle(d)
 
 
+def eslint(d: Path) -> Counter[str]:
+    out = run(["npx", "--no-install", "eslint", "-f", "json", "."], d)
+    hits: Counter[str] = Counter()
+    for f in json.loads(out[out.index("[") :]):
+        for m in f["messages"]:
+            hits[f"eslint:{m['ruleId']}"] += 1
+    return hits
+
+
+def prettier(d: Path) -> Counter[str]:
+    out = run(["npx", "--no-install", "prettier", "--check", "."], d)
+    return Counter(
+        {"prettier:unformatted": len(re.findall(r"^\[warn\] (?!Code style)", out, re.M))}
+    )
+
+
+def prof_astro(d: Path) -> Counter[str]:
+    for name in ("eslint.config.mjs", ".prettierrc.json", ".prettierignore"):
+        shutil.copy(LINT / "astro" / name, d)
+    need("npm")
+    subprocess.run(
+        ["npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", "--silent"],
+        cwd=d,
+        check=True,
+    )
+    git_init(d)
+    return eslint(d) + prettier(d)
+
+
 PROFILES = {
     "ros2": prof_ros2,
     "firmware": prof_firmware,
     "rust": prof_rust,
     "python": prof_python,
     "typst": prof_typst,
+    "astro": prof_astro,
 }
 
 

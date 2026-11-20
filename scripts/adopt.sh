@@ -3,7 +3,7 @@
 #
 #   scripts/adopt.sh <profile> <repo> [--workspace <dir>] [--diff] [--dry-run]
 #
-#   profile      ros2 | firmware | rust | rust-embedded | python | typst
+#   profile      ros2 | firmware | rust | rust-embedded | python | typst | astro
 #   repo         the project's git repo root
 #   --workspace  ROS 2 only: colcon workspace root for .vscode/ and .devcontainer/ (default: <repo>)
 #   --diff       don't copy; show how the repo's copies differ from this kit version (for updating)
@@ -111,7 +111,15 @@ Run: uv sync" ;;
     TODO="List your entry documents in .typst-entries (it defaults to main.typ).
 Commit the fonts your documents use to fonts/ (system fonts are ignored so PDFs match on every machine).
 Install typst $(cat "$L/typst/.typst-version") and typstyle if missing (SETUP.md, Typst)." ;;
-  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python, typst)" ;;
+  astro) make_agents_md astro; PAIRS=(
+      "$L/astro/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+      "$L/astro/patterns.toml|patterns.toml" "$L/astro/eslint.config.mjs|eslint.config.mjs"
+      "$L/astro/.prettierrc.json|.prettierrc.json" "$L/astro/.prettierignore|.prettierignore"
+      "$V/astro/.vscode|.vscode")
+    IGNORE=(dist/ .astro/ node_modules/)
+    TODO="Install the tools the checks use, as dev dependencies (SETUP.md, astro): npm install --save-dev @astrojs/check typescript@~6.0 eslint@^10 @eslint/js@^10 typescript-eslint eslint-plugin-astro eslint-plugin-jsx-a11y-x prettier prettier-plugin-astro
+Commit package.json and package-lock.json. On each machine, run npm ci before the hooks." ;;
+  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python, typst, astro)" ;;
 esac
 
 dest_path() { local d="$1"; [[ "$d" == WS:* ]] && echo "$WS/${d#WS:}" || echo "$REPO/$d"; }
