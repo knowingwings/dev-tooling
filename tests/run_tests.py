@@ -29,6 +29,7 @@ KIT = Path(__file__).resolve().parent.parent
 FIX = KIT / "tests" / "fixtures"
 EXP = KIT / "tests" / "expected"
 LINT = KIT / "lint"
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 class SkipError(Exception):
@@ -242,7 +243,7 @@ def prettier(d: Path) -> Counter[str]:
         text=True,
         check=False,
     )
-    out = p.stdout + p.stderr
+    out = ANSI.sub("", p.stdout + p.stderr)
     if p.returncode not in (0, 1) or re.search(r"^\[error\]", out, re.M):
         raise RuntimeError(f"prettier failed (exit {p.returncode}):\n{out}")
     return Counter(
