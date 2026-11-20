@@ -1,7 +1,7 @@
 # robot-dev-kit
 
 Lint rules, editor config and setup scripts for robotics repos: **ROS 2**, **embedded C/C++**,
-**Rust** (host and `no_std`) and **Python**. Every rule's error message says how to fix the problem,
+**Rust** (host and `no_std`), **Python**, and **Typst** for documents. Every rule's error message says how to fix the problem,
 so a human or an agent can act on it without asking. Agent instructions live in `AGENTS.md`, so they
 work with any coding agent; `CLAUDE.md` just imports it. The kit tests itself in CI.
 
@@ -13,7 +13,7 @@ git clone git@github.com:knowingwings/robot-dev-kit.git ~/robot-dev-kit
 ~/robot-dev-kit/scripts/adopt.sh firmware ~/work/motor-board    # once per project
 ```
 
-Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`. The full walkthrough, written so an
+Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`, `typst`. The full walkthrough, written so an
 agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 
 ## How it stays reproducible
@@ -41,8 +41,8 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 ## Layout
 
 ```
-lint/        ros2/ firmware/ rust/ (+ rust/embedded/) python/ shared/
-vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/
+lint/        agents/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ shared/
+vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/ typst/
 src/         robot_dev_kit/check_patterns.py   (installed by pre-commit as the check-patterns hook)
 scripts/     install-machine.sh  adopt.sh
 tests/       fixtures/ expected/ run_tests.py test_adopt.sh

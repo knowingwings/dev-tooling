@@ -12,6 +12,8 @@ env:
   RUFF_VERSION: "0.16.9"
   CLANG_TIDY_VERSION: "23.1.4"
   RUST_VERSION: "1.97.0"
+  TYPST_VERSION: "0.15.1"     # keep in step with lint/typst/.typst-version
+  TYPSTYLE_VERSION: "0.15.3"
 
 jobs:
   rules:
@@ -34,6 +36,14 @@ jobs:
         run: |
           rustup toolchain install "${RUST_VERSION}" --profile minimal --component clippy,rustfmt
           rustup default "${RUST_VERSION}"
+
+      - name: Install Typst and typstyle
+        run: |
+          curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
+            | tar -xJ --strip-components=1 -C "$HOME/.local/bin" typst-x86_64-unknown-linux-musl/typst
+          cargo install typstyle --locked --version "${TYPSTYLE_VERSION}"
+          typst --version && typstyle --version | head -1
+          test "$(cat lint/typst/.typst-version)" = "${TYPST_VERSION}"
 
       - name: Kit's own code passes its own rules
         run: |

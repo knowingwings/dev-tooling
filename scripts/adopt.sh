@@ -3,7 +3,7 @@
 #
 #   scripts/adopt.sh <profile> <repo> [--workspace <dir>] [--diff] [--dry-run]
 #
-#   profile      ros2 | firmware | rust | rust-embedded | python
+#   profile      ros2 | firmware | rust | rust-embedded | python | typst
 #   repo         the project's git repo root
 #   --workspace  ROS 2 only: colcon workspace root for .vscode/ and .devcontainer/ (default: <repo>)
 #   --diff       don't copy; show how the repo's copies differ from this kit version (for updating)
@@ -79,7 +79,14 @@ Set rust-analyzer.cargo.target in .vscode/settings.json; HUMAN: set chip and SVD
     TODO="If pyproject.toml was skipped, merge [dependency-groups] and the [tool.*] sections from $L/python/pyproject.toml (SETUP.md Phase 5.2).
 Mark tests that need a device with @pytest.mark.hardware (5.3).
 Run: uv sync" ;;
-  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python)" ;;
+  typst) make_agents_md typst; PAIRS=(
+      "$L/typst/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+      "$L/typst/.typst-version|.typst-version" "$L/typst/.typst-entries|.typst-entries" "$V/typst/.vscode|.vscode")
+    IGNORE=(build/)
+    TODO="List your entry documents in .typst-entries (it defaults to main.typ).
+Commit the fonts your documents use to fonts/ (system fonts are ignored so PDFs match on every machine).
+Install typst $(cat "$L/typst/.typst-version") and typstyle if missing (SETUP.md, Typst)." ;;
+  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python, typst)" ;;
 esac
 
 dest_path() { local d="$1"; [[ "$d" == WS:* ]] && echo "$WS/${d#WS:}" || echo "$REPO/$d"; }

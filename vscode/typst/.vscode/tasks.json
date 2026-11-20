@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "typst: compile all (pinned, reproducible)",
+      "type": "shell",
+      "command": "pre-commit run typst-compile --hook-stage pre-push --all-files",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "typst: watch current file",
+      "type": "shell",
+      "command": "mkdir -p build && typst watch --root . --ignore-system-fonts --font-path fonts \"${relativeFile}\" \"build/${relativeFileDirname}/${fileBasenameNoExtension}.pdf\"",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "typst: format all",
+      "type": "shell",
+      "command": "typstyle -i $(git ls-files '*.typ')",
+      "problemMatcher": []
+    }
+  ]
+}

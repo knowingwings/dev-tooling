@@ -30,3 +30,12 @@
   language: script
   types_or: [c, c++]
   stages: [pre-push]
+
+- id: typst-compile
+  name: typst compile (pinned version, no system fonts)
+  description: Compiles every document in .typst-entries (or every main.typ) to build/, checking the Typst version in .typst-version.
+  entry: lint/shared/typst_compile.sh
+  language: script
+  files: \.(typ|bib|yaml|yml|csv|json|svg|png|jpe?g|otf|ttf)$
+  pass_filenames: false
+  stages: [pre-push]

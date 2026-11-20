@@ -1,0 +1,15 @@
+// Typst documents. Tinymist gives completion, live preview (Ctrl+K V) and formatting via typstyle.
+{
+  "[typst]": {
+    "editor.defaultFormatter": "myriad-dreamin.tinymist",
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on"
+  },
+  "tinymist.formatterMode": "typstyle",
+  "tinymist.exportPdf": "onSave",
+  "tinymist.outputPath": "$root/build/$dir/$name",
+  // Same fonts as the pre-commit compile: committed fonts/ plus Typst's built-ins, no system fonts.
+  "tinymist.systemFonts": false,
+  "tinymist.fontPaths": ["${workspaceFolder}/fonts"],
+  "files.exclude": { "build": true }
+}

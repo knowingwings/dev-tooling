@@ -26,6 +26,7 @@ COMMON=(
   rust-lang.rust-analyzer                  # Rust: navigation, completion, live clippy
   vadimcn.vscode-lldb                      # CodeLLDB: debugger for host Rust (and C++ if you prefer lldb)
   tamasfe.even-better-toml                 # Cargo.toml / pyproject.toml with schema validation
+  myriad-dreamin.tinymist                  # Typst: completion, live preview, typstyle formatting
 )
 
 ROS2=(

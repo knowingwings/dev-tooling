@@ -1,0 +1,5 @@
+typst:error 1
+typst:font-not-reproducible 1
+typst:ok 1
+typst:warning 1
+typstyle:needs-format 1

@@ -7,7 +7,7 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 fail=0
 check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 
-for profile in ros2 firmware rust rust-embedded python; do
+for profile in ros2 firmware rust rust-embedded python typst; do
   echo "== $profile"
   R="$TMP/$profile"; mkdir -p "$R"; git -C "$R" init -q
   echo "# my own notes" > "$R/CLAUDE.md"                 # pre-existing file must survive
@@ -17,7 +17,7 @@ for profile in ros2 firmware rust rust-embedded python; do
   check "existing CLAUDE.md kept"            '[[ "$(cat "$R/CLAUDE.md")" == "# my own notes" ]]'
   check "skip reported"                      'grep -q "CLAUDE.md" <<< "$(sed -n "/Skipped/,/Git hooks/p" <<< "$out")"'
   check "AGENTS.md has shared base"          'grep -q "^## Comments" "$R/AGENTS.md" && grep -q "^## Hardware safety" "$R/AGENTS.md"'
-  check "AGENTS.md has stack section"        'grep -qE "^## (ROS 2|Embedded C/C\+\+ firmware|Rust|Python) \(this repo\)" "$R/AGENTS.md"'
+  check "AGENTS.md has stack section"        'grep -qE "^## (ROS 2|Embedded C/C\+\+ firmware|Rust|Python|Typst documents) \(this repo\)" "$R/AGENTS.md"'
   check "import hint for kept CLAUDE.md"     'grep -q "^  @AGENTS.md" <<< "$out"'
   check ".robot-kit-version written"         'grep -q "^profile=$profile$" "$R/.robot-kit-version"'
   check ".vscode copied"                     '[[ -f "$R/.vscode/settings.json" ]]'

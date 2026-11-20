@@ -20,6 +20,19 @@ else
   echo "   uv not found: install it first (curl -LsSf https://astral.sh/uv/install.sh | sh), then re-run" >&2
 fi
 
+echo "   Typst (optional, for the typst profile):"
+want_typst="$(cat "$KIT/lint/typst/.typst-version")"
+if command -v typst >/dev/null; then
+  echo "     typst $(typst --version | awk '{print $2}') installed (kit pins $want_typst)"
+else
+  case "$(uname -s)" in
+    Linux)  echo "     install: sudo pacman -S typst (Arch/Omarchy)  |  cargo install typst-cli --locked --version $want_typst" ;;
+    Darwin) echo "     install: brew install typst" ;;
+    *)      echo "     install: winget install --id Typst.Typst" ;;
+  esac
+fi
+command -v typstyle >/dev/null || echo "     typstyle: cargo install typstyle --locked  (or brew install typstyle)"
+
 echo "== 2. VS Code extensions"
 if command -v "$CODE" >/dev/null; then
   CODE="$CODE" bash "$KIT/vscode/user/install-extensions.sh" | grep -E '^\[' | cut -d' ' -f1 | sort | uniq -c \

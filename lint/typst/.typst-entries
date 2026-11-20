@@ -1,0 +1,3 @@
+# Typst documents to compile (one path per line, relative to the repo root).
+# Remove this file to compile every main.typ instead.
+main.typ

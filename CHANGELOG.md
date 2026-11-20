@@ -15,6 +15,9 @@ First version as a repo (previously two zips: robot-lint-kit, vscode-setup).
   by `[comments]` in `patterns.toml`. The kit's own code follows it.
 - Agent instructions moved to `AGENTS.md` (shared `lint/agents/base.md` + a section per stack) so any
   coding agent reads them; `CLAUDE.md` is `@AGENTS.md` plus Claude-only notes.
+- `typst` profile: typstyle formatting on commit, and a `typst-compile` hook that builds every entry
+  document with the Typst version pinned in `.typst-version` and no system fonts, failing on fonts
+  that would render differently on another machine. Tinymist in VS Code with matching settings.
 - Self-test: `tests/run_tests.py` (every rule against bad fixtures), `tests/test_adopt.sh`, GitHub Actions CI.
 
 **Fixes found on a work machine**

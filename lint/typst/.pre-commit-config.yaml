@@ -1,0 +1,26 @@
+# pre-commit install && pre-commit install --hook-type pre-push
+# typstyle formats .typ files on commit; every entry document is compiled with the pinned Typst on push.
+exclude: ^build/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=4096]   # fonts and figures are fine; generated PDFs belong in build/
+
+  - repo: local
+    hooks:
+      - id: typstyle
+        name: typstyle (format .typ)
+        entry: typstyle -i
+        language: system
+        files: \.typ$
+
+  - repo: https://github.com/knowingwings/robot-dev-kit
+    rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
+    hooks:
+      - id: typst-compile

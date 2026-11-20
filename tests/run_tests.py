@@ -198,7 +198,40 @@ def prof_python(d: Path) -> Counter[str]:
     return hits + pyright(d) + pytest_summary(d)
 
 
-PROFILES = {"ros2": prof_ros2, "firmware": prof_firmware, "rust": prof_rust, "python": prof_python}
+def typst_compile(d: Path) -> Counter[str]:
+    need("typst")
+    out = run(["bash", str(KIT / "lint" / "shared" / "typst_compile.sh")], d)
+    hits: Counter[str] = Counter()
+    hits["typst:ok"] = len(re.findall(r"^ok  ", out, re.M))
+    hits["typst:error"] = len(re.findall(r"^error: ", out, re.M))
+    hits["typst:warning"] = len(re.findall(r"^warning: ", out, re.M))
+    hits["typst:font-not-reproducible"] = len(re.findall(r"^FAIL .*uses a font", out, re.M))
+    return +hits
+
+
+def typstyle(d: Path) -> Counter[str]:
+    need("typstyle")
+    files = sorted(str(p.relative_to(d)) for p in d.rglob("*.typ"))
+    hits: Counter[str] = Counter()
+    for f in files:
+        p = subprocess.run(["typstyle", "--check", f], cwd=d, capture_output=True, check=False)
+        hits["typstyle:needs-format"] += p.returncode != 0
+    return +hits
+
+
+def prof_typst(d: Path) -> Counter[str]:
+    shutil.copy(LINT / "typst" / ".typst-version", d)
+    git_init(d)
+    return typst_compile(d) + typstyle(d)
+
+
+PROFILES = {
+    "ros2": prof_ros2,
+    "firmware": prof_firmware,
+    "rust": prof_rust,
+    "python": prof_python,
+    "typst": prof_typst,
+}
 
 
 def fmt(c: Counter[str]) -> str:
