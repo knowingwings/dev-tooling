@@ -30,8 +30,8 @@ for this repo with the firmware profile. Stop at every STOP (human) step."*
 | rustup, probe-rs | Rust | rustup.rs, probe.rs | `pacman -S rustup`, probe-rs from probe.rs | rustup.rs, probe.rs | rustup.rs, probe.rs |
 | typst, typstyle | Typst docs | `cargo install typst-cli typstyle --locked` | `pacman -S typst`, `cargo install typstyle --locked` | `brew install typst typstyle` | `winget install Typst.Typst`, `cargo install typstyle --locked` |
 
-On Arch/Omarchy, use the Microsoft VS Code build: the open-source `code` package can't install
-Pylance, the C/C++ debugger, Remote-SSH or Dev Containers, and ROS 2 on Arch runs in the dev container.
+On Arch/Omarchy, use the Microsoft VS Code build. The open-source `code` package can't install
+Pylance, the C/C++ debugger, Remote-SSH or Dev Containers. On Arch, ROS 2 runs in the dev container.
 On Windows, run the scripts from Git Bash; ROS 2 runs in Docker Desktop or WSL2.
 
 ## Phase 1: Machine (once per machine)
@@ -41,10 +41,10 @@ git clone git@github.com:knowingwings/dev-tooling.git ~/dev-tooling
 ~/dev-tooling/scripts/install-machine.sh
 ```
 
-This installs pre-commit, ruff and clang-tidy (20+) with uv, installs the VS Code extensions into
-**ROS2** and **Firmware** profiles, and symlinks `vscode/user/settings.json` into VS Code so that
-`git pull` in the kit updates your settings on every machine. Existing settings are backed up next
-to the link. On Windows without Developer Mode it copies instead; re-run after each pull.
+This script installs pre-commit, ruff and clang-tidy (20+) with uv. It installs the VS Code
+extensions into the **ROS2** and **Firmware** profiles. It also links `vscode/user/settings.json`
+into VS Code, so `git pull` in the kit updates your settings on every machine. The script keeps a
+backup of your existing settings next to the link. On Windows without Developer Mode it copies instead; re-run after each pull.
 
 **STOP (human):**
 1. VS Code > gear > Profiles: for ROS2 and Firmware, set *Settings* to "Use Default".
@@ -79,14 +79,18 @@ cd <repo> && git switch -c dev-env-setup
 | `python` | standalone Python: test rigs, HIL scripts, serial/CAN tools |
 | `typst` | Typst documents |
 
-`adopt.sh` copies the profile's files without overwriting anything, builds `AGENTS.md` (shared rules
-plus this stack's section) and a `CLAUDE.md` that imports it, pins the kit's hooks to the kit version,
-adds `.gitignore` entries, writes `.dev-tooling-version` and installs the git hooks. It ends with a
+`adopt.sh` copies the profile's files, and it does not overwrite a file that exists. It builds
+`AGENTS.md` (the shared rules and this stack's section) and a `CLAUDE.md` that imports it. It pins
+the kit's hooks to the kit version and adds `.gitignore` entries. Then it writes
+`.dev-tooling-version` and installs the git hooks. It ends with a
 **Still to do** list for that profile: do those steps (details below).
 
-Every profile also gets the GitHub conventions: an evidence-first PR template, issue templates
-(Task, Bug, Agent mistake → check), CODEOWNERS for the files that define the checks, a `pr-checks`
-workflow, and `docs/FEATURE_MAP.md` to fill in (see "GitHub conventions" below).
+Every profile also gets the GitHub conventions (see "GitHub conventions" below):
+- an evidence-first PR template
+- issue templates: Task, Bug, and Agent mistake → check
+- CODEOWNERS for the files that define the checks
+- a `pr-checks` workflow
+- `docs/FEATURE_MAP.md`, for you to fill in
 
 Files it skipped because they already exist: compare with
 `adopt.sh <profile> <repo> --diff` and merge by hand. If you kept your own `CLAUDE.md`, make
@@ -153,8 +157,8 @@ on an `rclcpp::` symbol works; `colcon test` results unchanged.
 ### typst
 
 - List the documents to build in `.typst-entries` (defaults to `main.typ`).
-- Commit the fonts your documents use to `fonts/`. System fonts are ignored on purpose, so a PDF
-  looks the same at work and at home; a missing font fails the build with the fix.
+- Commit the fonts your documents use to `fonts/`. The build ignores system fonts, so a PDF looks
+  the same at work and at home. If a font is missing, the build fails and tells you the fix.
 - `.typst-version` pins the compiler. Upgrade it in its own commit and check the PDFs.
 
 **Verify:** `pre-commit run typst-compile --hook-stage pre-push --all-files` prints `ok <doc>` for
@@ -162,9 +166,9 @@ each document; Tinymist preview opens with `Ctrl+K V`.
 
 ## GitHub conventions (each project)
 
-**STOP (human), once per repo on GitHub:** Settings > Branches > add a rule for `main`:
-require a pull request, require the `pr-checks` and CI status checks to pass, and require review from
-Code Owners. Without this, the checks below are advice rather than gates.
+**STOP (human), once per repo on GitHub:** go to Settings > Branches and add a rule for `main`.
+Require a pull request. Require the `pr-checks` and CI status checks to pass. Require a review from
+Code Owners. Without this rule, the checks below give advice but do not stop a merge.
 
 | Convention | Enforced by | Example |
 | --- | --- | --- |
@@ -181,8 +185,8 @@ of `patterns.toml` and point PRs at it.
 Fill in `docs/FEATURE_MAP.md` early: one row per behaviour, with the command that proves it works.
 It's what agents run to produce PR evidence, and what you check that evidence against.
 
-When an agent gets something wrong twice, open an **Agent mistake → check** issue and turn it into a
-rule (here, or in dev-tooling if every project should get it).
+When an agent makes the same mistake twice, open an **Agent mistake → check** issue. Then turn the
+mistake into a rule. Put the rule here, or in dev-tooling if every project needs it.
 
 ## Writing and secrets checks (each project)
 
@@ -201,8 +205,8 @@ To keep a secret out of git, put an `op://` reference in the env file. Then run 
 
 ## One command: `./check`
 
-Every project gets a `./check` script that runs all of its checks and prints one line per step, with
-the failing lines and a log path when something fails:
+Every project gets a `./check` script. It runs all of the project's checks and prints one line per
+step. When a step fails, it also prints the failing lines and a log path:
 
 ```
 PASS  hooks            2.1s
@@ -221,11 +225,13 @@ results match on every machine. Agents paste its summary into the PR's Evidence 
 
 ## Agent roles (GitHub Apps)
 
-Four roles, each a GitHub App you own: **architect**, **builder**, **reviewer** and **publisher**
-(full instructions in each project's `docs/agents/`, and as Claude Code subagents in
-`.claude/agents/`). Apps are free, use short-lived tokens with only the permissions they need, and
-show up as `<name>[bot]` on every PR, review and commit. A reviewer App's approval counts toward
-"required approvals"; Apps can't be code owners, so changes to the checks always need you.
+There are four roles: **architect**, **builder**, **reviewer** and **publisher**. Each role is a
+GitHub App that you own. The full instructions are in each project's `docs/agents/`, and Claude Code
+also has them as subagents in `.claude/agents/`. Apps are free, and they use short-lived tokens with
+only the permissions they need. Each App shows as `<name>[bot]` on every PR, review and commit.
+
+A reviewer App's approval counts toward "required approvals". An App can't be a code owner, so a
+change to the checks always needs your approval.
 
 **STOP (human), once per role** (about 5 minutes each):
 
@@ -244,17 +250,17 @@ show up as `<name>[bot]` on every PR, review and commit. A reviewer App's approv
    - Where can it be installed: **Only on this account**. Create.
 2. Copy the **Client ID**, then **Generate a private key**.
 3. Store the key. **Recommended: 1Password.** Nothing sits on disk, and every machine gets the same keys:
-   - In 1Password, create an item named `<you>-<role>` (e.g. in a `Dev` vault), add a text field
-     `client_id` with the Client ID, and attach the downloaded key file renamed to `private-key.pem`.
-     Then delete the download.
+   - In 1Password, create an item named `<you>-<role>`, for example in a `Dev` vault. Add a text
+     field `client_id` that holds the Client ID. Rename the downloaded key file to `private-key.pem`
+     and attach it to the item. Then delete the download.
    - On each machine that runs agents (needs the 1Password CLI, `op`, signed in):
      ```bash
      mkdir -p ~/.config/dev-tooling/agents && cd ~/.config/dev-tooling/agents
      printf 'CLIENT_ID=op://Dev/<you>-<role>/client_id\nKEY=op://Dev/<you>-<role>/private-key.pem\n' > <role>.env
      ```
-     `as-agent` reads the key through `op` only when it needs a fresh token (about once an hour per
-     repo), signs with it, and deletes it straight away. Set `DEV_TOOLING_NO_TOKEN_CACHE=1` to keep
-     even the 1-hour tokens off disk, at the cost of unlocking 1Password more often.
+     `as-agent` reads the key through `op` only when it needs a new token, about once an hour per
+     repo. It signs with the key, and then deletes it immediately. To keep the 1-hour tokens off disk
+     too, set `DEV_TOOLING_NO_TOKEN_CACHE=1`. Then 1Password asks you to unlock it more often.
 
    **Or as a file** (no 1Password):
    ```bash
@@ -275,21 +281,31 @@ Once, for attribution: create `~/.config/dev-tooling/agents/owner.env` with
 
 ## Auto-merge
 
-Low-risk pull requests merge themselves once every required check passes, if all of these hold: the
-Risk box is **Low**; someone other than the author approved (the reviewer bot counts) and nobody
-requested changes; it doesn't change the checks themselves; and there's no `do-not-merge`,
-`needs-human` or `hold` label. Medium and High always wait for you.
+A low-risk pull request merges itself when every required check passes and all of these are true:
+- The Risk box is **Low**.
+- Someone other than the author approved it (the reviewer bot counts), and nobody requested changes.
+- It does not change the checks themselves.
+- It has no `do-not-merge`, `needs-human` or `hold` label.
+
+Medium-risk and high-risk pull requests always wait for you.
 
 **STOP (human), once per repo:**
 1. Settings > General > Pull Requests: tick **Allow auto-merge**, **Allow squash merging** and
    **Automatically delete head branches**.
-2. Settings > Branches > rule for `main`: require a pull request with **1 approval**, **dismiss stale
-   approvals**, **require review from Code Owners**, and **require status checks** (`pr-checks` and
-   your CI). The workflow does nothing until required checks exist, so "merge when green" can never
-   become "merge now".
-3. Settings > Secrets and variables > Actions: variable `PUBLISHER_CLIENT_ID` and secret
-   `PUBLISHER_PRIVATE_KEY` (the publisher App's key). Merges then show as the publisher bot and
-   trigger workflows on `main`; without them the workflow token is used and they don't.
+2. Go to Settings > Branches and edit the rule for `main`. Set these options:
+   - require a pull request with **1 approval**
+   - **dismiss stale approvals**
+   - **require review from Code Owners**
+   - **require status checks**: `pr-checks` and your CI
+
+   The workflow does nothing until required checks exist. Thus "merge when green" can never become
+   "merge now".
+3. Go to Settings > Secrets and variables > Actions. Add these settings:
+   - the variable `PUBLISHER_CLIENT_ID`
+   - the secret `PUBLISHER_PRIVATE_KEY`, which is the publisher App's key
+
+   With these settings, merges show as the publisher bot and start workflows on `main`. Without them,
+   the workflow token does the merge, and workflows on `main` do not start.
 
 Turn it off per repo with `automerge = false` in the `[git]` table of `patterns.toml`.
 
@@ -311,9 +327,14 @@ how to fix it. Then `git restore --staged <file> && git checkout -- <file>`.
 
 ## Updating a project to a newer kit
 
-1. `git -C ~/dev-tooling pull`
-2. In the project, bump `rev:` for dev-tooling in `.pre-commit-config.yaml` to the new tag.
-3. `~/dev-tooling/scripts/adopt.sh <profile> <repo> --diff` and merge what you want.
+1. Run `git -C ~/dev-tooling pull` to get the new kit version.
+2. Run `~/dev-tooling/scripts/adopt.sh <profile> <repo>`. It copies only the new files.
+3. Run the same command with `--diff`. It shows how your copies differ from the kit.
+4. Merge the changes you want. `AGENTS.md` and `.pre-commit-config.yaml` usually need a merge.
+5. Make sure that `rev:` for dev-tooling in `.pre-commit-config.yaml` is the new tag.
+6. Run `pre-commit run --all-files`, and then commit the update on its own branch.
+
+Read `CHANGELOG.md` for the changes in each version.
 
 ## Daily workflow
 

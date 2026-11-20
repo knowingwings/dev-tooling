@@ -5,11 +5,14 @@ All of them share the `check-patterns`, `check-comments` and `clang-tidy` hooks,
 built from `agents/base.md` plus the profile's own section.
 
 ## No new comments (`check-comments`)
-From Lauren Tan's approach: comments go stale and agents use them to justify workarounds, so new ones
-are blocked and the why goes into names, types, checks, tests or the commit message. Only lines added in
-a commit are checked, so existing code doesn't fail when you touch it. Allowed: doc comments,
-`SAFETY:`, `REF(<datasheet/erratum/issue>): <fact>` for hardware facts, suppressions with a reason and
-licence headers. Tune or switch it off per project in the `[comments]` table of `patterns.toml`.
+This rule comes from Lauren Tan's approach. Comments go stale, and agents use them to justify
+workarounds. Thus the hook blocks new comments. Put the why in names, types, checks, tests or the
+commit message. The hook checks only the lines added in a commit, so existing code does not fail when
+you touch it.
+
+These are allowed: doc comments, `SAFETY:`, `REF(<datasheet/erratum/issue>): <fact>` for hardware
+facts, suppressions with a reason, and licence headers. To tune the rule or turn it off, use the
+`[comments]` table of `patterns.toml`.
 
 ## Rust (`rust/`)
 - `Cargo-lints.toml`: workspace `[lints]`. No `unwrap`, no unchecked numeric casts (Rust's `-Wconversion`),
@@ -24,16 +27,16 @@ licence headers. Tune or switch it off per project in the `[comments]` table of 
 For test rigs, HIL scripts, serial/CAN tools and analysis (ROS 2 Python packages use `ros2/ruff.toml`).
 - uv for environments, ruff for lint and format, **pyright** for types (the same engine as Pylance, so the editor and
   pre-commit agree). Astral's `ty` is faster but still in beta, so it's worth trying later.
-- pytest with a `hardware` marker that is **deselected by default**: `pytest` (what an agent runs) never
-  touches a device, and `pytest -m hardware` runs the hardware tests when you mean it.
+- pytest with a `hardware` marker that is **deselected by default**. `pytest` is what an agent runs,
+  and it never touches a device. Run `pytest -m hardware` when you want to run the hardware tests.
 
 ---
 
 # ROS 2 + embedded C/C++ profiles
 
-A starting point for the "make the codebase enforce quality" approach: every rule has an
-error message that says how to fix the problem, so an agent (or a new teammate) can act on it
-without asking. Works the same in VS Code, Cursor, the terminal and CI.
+This kit is a starting point for the "make the codebase enforce quality" approach. Every rule has
+an error message that tells you how to fix the problem. Thus an agent, or a new teammate, can fix it
+without help. The rules work the same in VS Code, Cursor, the terminal and CI.
 
 ## What's in it
 
