@@ -6,6 +6,8 @@
 #       - id: check-patterns
 #       - id: check-comments
 #       - id: check-branch
+#       - id: check-prose
+#       - id: check-secrets
 #       - id: clang-tidy
 #
 # Each project keeps its own patterns.toml / .clang-tidy: the rules are per project, the tools are shared.
@@ -23,6 +25,20 @@
   entry: check-comments
   language: python
   types_or: [c, c++, python, rust]
+
+- id: check-prose
+  name: STE sentence and paragraph length (docs)
+  description: ASD-STE100 length rules for Markdown and Typst docs, on changed blocks only. Configured by [prose] in patterns.toml.
+  entry: check-prose
+  language: python
+  files: \.(md|markdown|typ)$
+
+- id: check-secrets
+  name: no secrets in git
+  description: Blocks private keys, well-known token formats and literal values for secret variables in env files. Use 1Password op:// references.
+  entry: check-secrets
+  language: python
+  types: [text]
 
 - id: check-branch
   name: branch name and no direct push to main

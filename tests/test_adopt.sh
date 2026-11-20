@@ -39,6 +39,9 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   check "./check wrapper pinned"             'grep -q "rev=\"$EXPECTED_REV\"" "$R/check" && [[ -x "$R/check" ]]'
   check ".dev-check/ ignored"                'grep -qx ".dev-check/" "$R/.gitignore"'
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'
+  check "_typos.toml copied (British spelling)" 'grep -qx "locale = \"en-gb\"" "$R/_typos.toml"'
+  check "prose, secrets and typos hooks on"   'grep -q "id: check-prose" "$R/.pre-commit-config.yaml" && grep -q "id: check-secrets" "$R/.pre-commit-config.yaml" && grep -q "id: typos" "$R/.pre-commit-config.yaml"'
+  check "AGENTS.md has writing and secrets"  'grep -q "^## Writing" "$R/AGENTS.md" && grep -q "^## Secrets" "$R/AGENTS.md"'
   # shellcheck disable=SC2034  # used inside check()'s eval
   out2="$("$KIT/scripts/adopt.sh" "$profile" "$R" 2>&1)"
   check "second run copies nothing"          'grep -q "^Copied (0)" <<< "$out2"'

@@ -184,6 +184,21 @@ It's what agents run to produce PR evidence, and what you check that evidence ag
 When an agent gets something wrong twice, open an **Agent mistake → check** issue and turn it into a
 rule (here, or in dev-tooling if every project should get it).
 
+## Writing and secrets checks (each project)
+
+Every profile gets three more hooks. They run on commit, and `./check` runs them too.
+
+- `typos` checks the spelling in Markdown, Typst, rst and text files. `_typos.toml` sets British
+  English. Put names from code or products in backticks, or add them to `[default.extend-words]`.
+- `check-prose` checks the ASD-STE100 length rules on the doc blocks that you change. A descriptive
+  sentence has 25 words or fewer, and a numbered step has 20 words or fewer. A paragraph has 6
+  sentences or fewer. Use `[prose]` in `patterns.toml` to change the paths or the limits.
+- `check-secrets` stops private keys and known token formats. It also stops literal values for
+  secret variables in env files.
+
+To keep a secret out of git, put an `op://` reference in the env file. Then run the command with
+`op run --env-file=<file> -- <command>`.
+
 ## One command: `./check`
 
 Every project gets a `./check` script that runs all of its checks and prints one line per step, with

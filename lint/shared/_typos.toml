@@ -1,0 +1,12 @@
+# Spelling for docs (typos hook): British English, as AGENTS.md asks. The hook only checks Markdown,
+# Typst, reStructuredText and text files, so American spellings in code and APIs (`color`) are left alone.
+# Put product, API and code names in backticks, or add them to [default.extend-words].
+[default]
+locale = "en-gb"
+extend-ignore-re = [
+  "(?s)```.*?```",
+  "`[^`\n]+`",
+  "\\b[\\w.-]+-analyzer\\b",
+]
+
+[default.extend-words]

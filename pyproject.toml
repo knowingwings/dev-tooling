@@ -13,6 +13,8 @@ check-branch = "dev_tooling.check_git:main_branch"
 check-pr = "dev_tooling.check_git:main_pr"
 dev-check = "dev_tooling.check:main"
 check-automerge = "dev_tooling.check_git:main_automerge"
+check-prose = "dev_tooling.check_prose:main"
+check-secrets = "dev_tooling.check_secrets:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -41,3 +43,5 @@ ignore = ["ANN401", "S101"]
 "tests/test_check_git.py" = ["S603", "S607", "ANN"]
 "src/dev_tooling/check.py" = ["S603"]   # runs the project's own configured check commands
 "tests/test_check.py" = ["S603", "S607", "ANN"]
+"tests/test_check_prose.py" = ["S603", "S607", "ANN"]
+"tests/test_check_secrets.py" = ["ANN"]

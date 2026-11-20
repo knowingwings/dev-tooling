@@ -20,8 +20,17 @@ repos:
         language: system
         files: \.typ$
 
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.52.2
+    hooks:
+      - id: typos             # British spelling in docs; settings in _typos.toml
+        args: [--force-exclude]
+        files: \.(md|markdown|typ|rst|txt)$
+
   - repo: https://github.com/knowingwings/dev-tooling
     rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
     hooks:
       - id: typst-compile
       - id: check-branch
+      - id: check-prose
+      - id: check-secrets

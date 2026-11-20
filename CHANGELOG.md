@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**New: house style for docs, and secrets checks (merged from the owner's machine AGENTS.md)**
+- AGENTS.md gains Writing (British English and ASD-STE100 for docs), Secrets (1Password CLI) and
+  "Instructions, notes and memory" sections.
+- `typos` hook with `_typos.toml` (locale `en-gb`): flags American spellings in Markdown, Typst, rst
+  and text files. Code, inline code and fenced blocks are left alone.
+- `check-prose` hook: STE length rules for Markdown and Typst docs (25 words per descriptive
+  sentence, 20 per numbered step, 6 sentences per paragraph), on changed blocks only.
+  `lint-allow(prose): <reason>` in a comment above a block keeps it as it is. `[prose]` in
+  `patterns.toml` sets paths and limits.
+- `check-secrets` hook: blocks private keys, well-known token formats, and literal values for
+  KEY/TOKEN/SECRET/PASSWORD variables in env files (use `op://` references and `op run`).
+
 **New: GitHub conventions, enforced (from Lauren Tan's evidence-over-diffs approach)**
 - Every profile gets an evidence-first PR template (Evidence, Risk / blast radius, suppressions and
   rules learned), issue forms (Task with acceptance criteria and proof expected, Bug, Agent mistake →

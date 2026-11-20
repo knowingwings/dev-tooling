@@ -63,7 +63,7 @@ make_claude_agents() {   # Claude Code subagents: frontmatter + the role's instr
 make_claude_agents
 AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md"
   "$L/agents/roles|docs/agents" "$GEN/claude-agents|.claude/agents"
-  "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github" "$L/shared/check|check")
+  "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github" "$L/shared/check|check" "$L/shared/_typos.toml|_typos.toml")
 case "$PROFILE" in
   ros2) make_agents_md ros2; PAIRS=(
       "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
