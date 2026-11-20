@@ -111,6 +111,24 @@ class DevCheck(unittest.TestCase):
         p = dev_check(self.d, "--only", "on-changed")
         self.assertIn("b.txt", p.stdout)
 
+    def test_base_is_the_remote_default_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            remote, clone = Path(tmp) / "remote.git", Path(tmp) / "clone"
+            seed = Path(tmp) / "seed"
+            seed.mkdir()
+            subprocess.run([*GIT, "init", "-q", "-b", "master"], cwd=seed, check=True)
+            (seed / "patterns.toml").write_text(textwrap.dedent(STEPS))
+            subprocess.run([*GIT, "add", "-A"], cwd=seed, check=True)
+            subprocess.run([*GIT, "commit", "-qm", "base"], cwd=seed, check=True)
+            subprocess.run([*GIT, "clone", "-q", "--bare", str(seed), str(remote)], check=True)
+            subprocess.run([*GIT, "clone", "-q", str(remote), str(clone)], check=True)
+            subprocess.run([*GIT, "switch", "-q", "-c", "feat/x"], cwd=clone, check=True)
+            (clone / "b.txt").write_text("committed on branch\n")
+            subprocess.run([*GIT, "add", "-A"], cwd=clone, check=True)
+            subprocess.run([*GIT, "commit", "-qm", "b"], cwd=clone, check=True)
+            p = dev_check(clone, "--only", "on-changed")
+            self.assertIn("b.txt", p.stdout)
+
     def test_quick_skips_slow(self) -> None:
         p = dev_check(self.d, "--quick")
         self.assertIn("slow (--quick)", self.line(p.stdout, "slow"))

@@ -13,6 +13,9 @@
 - `typos`: HTML tags in docs are skipped, so CSS such as `style="text-align: center"` in a Markdown
   page passes. The text between the tags is still checked.
 - `docs/FEATURE_MAP.md` template: split a 27-word sentence that failed `check-prose` on adoption.
+- `./check`: `{changed}` compares with the remote's default branch (`origin/HEAD`), not always
+  `origin/main`. In a repo whose default branch is `master`, the hooks step skipped with "nothing
+  changed". Set `[check] base` to choose another branch.
 
 ## v0.3.0 (2026-11-20)
 
