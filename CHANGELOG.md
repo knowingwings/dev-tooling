@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.1 (2026-11-20)
 
 **New: `astro` profile, for Astro websites**
 - ESLint 10 (JavaScript, `typescript-eslint`, Astro and accessibility recommended rules, and bans on
