@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.1 (2026-11-20)
+## Unreleased
 
 **New: `astro` profile, for Astro websites**
 - ESLint 10 (JavaScript, `typescript-eslint`, Astro and accessibility recommended rules, and bans on
@@ -15,6 +15,8 @@
 - `./check` removes colour codes from a step's output before it matches the `summary` and `errors`
   patterns, and in the log. `astro check` colours its output even when it isn't a terminal.
 - SETUP.md: on Arch, typstyle is a pacman package (`pacman -S typst typstyle`).
+
+## v0.3.1 (2026-11-20)
 
 **Fixes: a project's adoption PR now passes the kit's own checks**
 - `check-pr`: a PR that changes `.dev-tooling-version` (a kit adoption or update) can change the
