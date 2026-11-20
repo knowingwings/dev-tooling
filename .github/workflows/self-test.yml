@@ -56,7 +56,7 @@ jobs:
           PYTHONPATH=src python3 -m dev_tooling.check_comments --all-lines src/dev_tooling/*.py tests/run_tests.py
           PYTHONPATH=src python3 -m dev_tooling.check_secrets
           git ls-files '*.md' '*.typ' | xargs typos --config lint/shared/_typos.toml --force-exclude
-          test "$(grep -A1 crate-ci/typos lint/python/.pre-commit-config.yaml | grep -o 'v[0-9.]*')" = "v${TYPOS_VERSION}"
+          test "$(grep -A1 crate-ci/typos lint/python/.pre-commit-config.yaml | grep -oE 'v[0-9]+(\.[0-9]+)+')" = "v${TYPOS_VERSION}"
 
       - name: Changed docs follow the STE length rules
         if: github.event_name == 'pull_request'
