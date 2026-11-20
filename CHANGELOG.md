@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 (2026-11-20)
 
 **Changed: ruff accepts British typography (python and ros2 profiles)**
 - `allowed-confusables`: en and em dashes, curly quotes, `×`, the minus sign `−`, primes and the
