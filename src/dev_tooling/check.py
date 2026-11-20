@@ -16,8 +16,8 @@ Steps come from [[check.step]] tables in patterns.toml:
     requires_path = "build-host"       # skipped if this path doesn't exist
 
 `{changed}` in a command expands to the files changed on this branch (against [check] base,
-default the remote's default branch, origin/HEAD) plus uncommitted and untracked files. A step whose command uses `{changed}`
-is skipped when nothing has changed.
+default the remote's default branch, origin/HEAD) plus uncommitted and untracked files. A step
+whose command uses `{changed}` is skipped when nothing has changed.
 
     dev-check              run every step
     dev-check --quick      skip slow steps while iterating
