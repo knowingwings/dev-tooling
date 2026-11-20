@@ -13,7 +13,7 @@ git clone git@github.com:knowingwings/dev-tooling.git ~/dev-tooling
 ~/dev-tooling/scripts/adopt.sh firmware ~/work/motor-board    # once per project
 ```
 
-Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`, `typst`, `astro`. The full walkthrough, written so an
+Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`, `typst`, `astro`, and combinations such as `astro,typst`. The full walkthrough, written so an
 agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 
 ## How it stays reproducible

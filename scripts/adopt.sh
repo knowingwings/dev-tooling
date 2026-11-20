@@ -3,7 +3,8 @@
 #
 #   scripts/adopt.sh <profile> <repo> [--workspace <dir>] [--diff] [--dry-run]
 #
-#   profile      ros2 | firmware | rust | rust-embedded | python | typst | astro
+#   profile      ros2 | firmware | rust | rust-embedded | python | typst | astro, or several joined
+#                with commas, the main one first (astro,typst): their files are merged
 #   repo         the project's git repo root
 #   --workspace  ROS 2 only: colcon workspace root for .vscode/ and .devcontainer/ (default: <repo>)
 #   --diff       don't copy; show how the repo's copies differ from this kit version (for updating)
@@ -36,8 +37,8 @@ REV="$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || git -C "$KIT" rev
 # "source|destination" pairs; destinations are relative to $REPO, or start with WS: for the workspace root.
 L="$KIT/lint"; V="$KIT/vscode"
 GEN="$(mktemp -d)"; trap 'rm -rf "$GEN"' EXIT
-make_agents_md() {   # AGENTS.md = shared base + this stack's section
-  { cat "$L/agents/base.md"; echo; cat "$L/$1/AGENTS.md"; } > "$GEN/AGENTS.md"
+make_agents_md() {   # AGENTS.md = shared base + each stack's section
+  { cat "$L/agents/base.md"; for s in "$@"; do echo; cat "$L/$s/AGENTS.md"; done; } > "$GEN/AGENTS.md"
 }
 make_claude_agents() {   # Claude Code subagents: frontmatter + the role's instructions
   mkdir -p "$GEN/claude-agents"
@@ -64,63 +65,68 @@ make_claude_agents
 AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md"
   "$L/agents/roles|docs/agents" "$GEN/claude-agents|.claude/agents"
   "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github" "$L/shared/check|check" "$L/shared/_typos.toml|_typos.toml")
-case "$PROFILE" in
-  ros2) make_agents_md ros2; PAIRS=(
+# One profile's files: sets STACK (its AGENTS.md section), P_PAIRS, P_IGNORE and P_TODO.
+# AGENTS in P_PAIRS marks where the shared agent and GitHub files go.
+profile_spec() {
+case "$1" in
+  ros2) STACK=ros2; P_PAIRS=(
       "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
       "$L/ros2/patterns.toml|patterns.toml" "$L/ros2/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "${AGENT_PAIRS[@]}" "$V/ros2/.vscode|WS:.vscode" "$V/ros2/.devcontainer|WS:.devcontainer")
-    IGNORE=(build/ install/ log/ .vscode/ros.env .cache/)
-    TODO="Add cmake-snippet.cmake ($L/ros2/cmake-snippet.cmake) to each ament_cmake package (SETUP.md Phase 2.4).
+      AGENTS "$V/ros2/.vscode|WS:.vscode" "$V/ros2/.devcontainer|WS:.devcontainer")
+    P_IGNORE=(build/ install/ log/ .vscode/ros.env .cache/)
+    P_TODO="Add cmake-snippet.cmake ($L/ros2/cmake-snippet.cmake) to each ament_cmake package (SETUP.md Phase 2.4).
 Delete test/test_flake8.py and test/test_pep257.py from ament_python packages.
 Not on Jazzy? Change the distro in .devcontainer/ and .vscode/settings.json (SETUP.md Phase 2.3)." ;;
-  firmware) make_agents_md firmware; PAIRS=(
+  firmware) STACK=firmware; P_PAIRS=(
       "$L/firmware/.clang-tidy|.clang-tidy" "$L/firmware/.clang-format|.clang-format" "$L/firmware/.clangd|.clangd"
       "$L/firmware/patterns.toml|patterns.toml" "$L/firmware/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "${AGENT_PAIRS[@]}" "$L/firmware/warnings.cmake|cmake/warnings.cmake" "$V/firmware/.vscode|.vscode")
-    IGNORE=(build/ build-host/)
-    TODO="Wire cmake/warnings.cmake into CMakeLists.txt (SETUP.md Phase 3.3).
+      AGENTS "$L/firmware/warnings.cmake|cmake/warnings.cmake" "$V/firmware/.vscode|.vscode")
+    P_IGNORE=(build/ build-host/)
+    P_TODO="Wire cmake/warnings.cmake into CMakeLists.txt (SETUP.md Phase 3.3).
 Rename the folders in patterns.toml to your layout (3.2).
 Add the arm-none-eabi include paths to .clang-tidy (3.4).
 HUMAN: set MCU, probe and SVD in .vscode/launch.json and tasks.json (3.5)." ;;
   rust|rust-embedded)
-    make_agents_md rust
+    STACK=rust
     CLIPPY="$L/rust/clippy.toml"; VS="$V/rust/.vscode"
-    [[ "$PROFILE" == rust-embedded ]] && { CLIPPY="$L/rust/embedded/clippy.toml"; VS="$V/rust-embedded/.vscode"; }
-    PAIRS=(
+    [[ "$1" == rust-embedded ]] && { CLIPPY="$L/rust/embedded/clippy.toml"; VS="$V/rust-embedded/.vscode"; }
+    P_PAIRS=(
       "$CLIPPY|clippy.toml" "$L/rust/rustfmt.toml|rustfmt.toml" "$L/rust/rust-toolchain.toml|rust-toolchain.toml"
       "$L/rust/patterns.toml|patterns.toml" "$L/rust/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "${AGENT_PAIRS[@]}" "$VS|.vscode")
-    IGNORE=(target/)
-    TODO="Merge $L/rust/Cargo-lints.toml into Cargo.toml, and add [lints] workspace = true to each crate (SETUP.md Phase 4.3).
+      AGENTS "$VS|.vscode")
+    P_IGNORE=(target/)
+    P_TODO="Merge $L/rust/Cargo-lints.toml into Cargo.toml, and add [lints] workspace = true to each crate (SETUP.md Phase 4.3).
 Set channel in rust-toolchain.toml to your current rustc version, and edition in rustfmt.toml to match your crates (4.2, 4.3)."
-    [[ "$PROFILE" == rust-embedded ]] && TODO+="
+    [[ "$1" == rust-embedded ]] && P_TODO+="
 Set rust-analyzer.cargo.target in .vscode/settings.json; HUMAN: set chip and SVD in .vscode/launch.json (4.4)." ;;
-  python) make_agents_md python; PAIRS=(
-      "$L/python/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+  python) STACK=python; P_PAIRS=(
+      "$L/python/.pre-commit-config.yaml|.pre-commit-config.yaml" AGENTS
       "$L/python/patterns.toml|patterns.toml"
       "$L/python/pyproject.toml|pyproject.toml" "$V/python/.vscode|.vscode")
-    IGNORE=(.venv/)
-    TODO="If pyproject.toml was skipped, merge [dependency-groups] and the [tool.*] sections from $L/python/pyproject.toml (SETUP.md Phase 5.2).
+    P_IGNORE=(.venv/)
+    P_TODO="If pyproject.toml was skipped, merge [dependency-groups] and the [tool.*] sections from $L/python/pyproject.toml (SETUP.md Phase 5.2).
 Mark tests that need a device with @pytest.mark.hardware (5.3).
 Run: uv sync" ;;
-  typst) make_agents_md typst; PAIRS=(
-      "$L/typst/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+  typst) STACK=typst; P_PAIRS=(
+      "$L/typst/.pre-commit-config.yaml|.pre-commit-config.yaml" AGENTS
       "$L/typst/.typst-version|.typst-version" "$L/typst/.typst-entries|.typst-entries" "$V/typst/.vscode|.vscode"
       "$L/typst/patterns.toml|patterns.toml")
-    IGNORE=(build/)
-    TODO="List your entry documents in .typst-entries (it defaults to main.typ).
+    P_IGNORE=(build/)
+    P_TODO="List your entry documents in .typst-entries (it defaults to main.typ).
 Commit the fonts your documents use to fonts/ (system fonts are ignored so PDFs match on every machine).
 Install typst $(cat "$L/typst/.typst-version") and typstyle if missing (SETUP.md, Typst)." ;;
-  astro) make_agents_md astro; PAIRS=(
-      "$L/astro/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+  astro) STACK=astro; P_PAIRS=(
+      "$L/astro/.pre-commit-config.yaml|.pre-commit-config.yaml" AGENTS
       "$L/astro/patterns.toml|patterns.toml" "$L/astro/eslint.config.mjs|eslint.config.mjs"
       "$L/astro/.prettierrc.json|.prettierrc.json" "$L/astro/.prettierignore|.prettierignore"
       "$V/astro/.vscode|.vscode")
-    IGNORE=(dist/ .astro/ node_modules/)
-    TODO="Install the tools the checks use, as dev dependencies (SETUP.md, astro): npm install --save-dev @astrojs/check typescript@~6.0 eslint@^10 @eslint/js@^10 typescript-eslint eslint-plugin-astro eslint-plugin-jsx-a11y-x prettier prettier-plugin-astro
+    P_IGNORE=(dist/ .astro/ node_modules/)
+    P_TODO="Install the tools the checks use, as dev dependencies (SETUP.md, astro): npm install --save-dev @astrojs/check typescript@~6.0 eslint@^10 @eslint/js@^10 typescript-eslint eslint-plugin-astro eslint-plugin-jsx-a11y-x prettier prettier-plugin-astro
 Commit package.json and package-lock.json. On each machine, run npm ci before the hooks." ;;
-  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python, typst, astro)" ;;
+  *) die "unknown profile '$1' (ros2, firmware, rust, rust-embedded, python, typst, astro)" ;;
 esac
+return 0
+}
 
 dest_path() { local d="$1"; [[ "$d" == WS:* ]] && echo "$WS/${d#WS:}" || echo "$REPO/$d"; }
 
@@ -133,6 +139,57 @@ expand() {
     echo "$src|$dst"
   fi
 }
+
+# Stage every profile's files in $STAGE, merging a file that two profiles both provide
+# (src/dev_tooling/merge_profiles.py). The copy, --diff and --dry-run steps below then use $STAGE.
+IFS=',' read -r -a PROFILES <<< "$PROFILE"
+[[ ${#PROFILES[@]} -ge 1 ]] || die "no profile given"
+STACKS=(); ALL=(); IGNORE=(); TODO=""
+for p in "${PROFILES[@]}"; do
+  profile_spec "$p"
+  [[ " ${STACKS[*]} " == *" $STACK "* ]] || STACKS+=("$STACK")
+  ALL+=("@profile:$p" "${P_PAIRS[@]}"); IGNORE+=("${P_IGNORE[@]}")
+  if [[ ${#PROFILES[@]} -eq 1 ]]; then TODO="$P_TODO"; else
+    while IFS= read -r line; do TODO+="${TODO:+$'\n'}[$p] $line"; done <<< "$P_TODO"
+  fi
+done
+make_agents_md "${STACKS[@]}"
+
+STAGE="$GEN/stage"; STAGED=(); kept=(); PY=""
+find_python() {
+  local c
+  for c in python3 python py; do
+    command -v "$c" >/dev/null && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null \
+      && { PY="$c"; return; }
+  done
+  die "combining profiles needs Python 3.10 or newer to merge $1"
+}
+stage_file() {   # stage_file <source file> <destination> <profile>
+  local key="${2/#WS:/@ws/}"
+  local t="$STAGE/$key" rc=0
+  if [[ ! -e "$t" ]]; then mkdir -p "$(dirname "$t")"; cp -p "$1" "$t"; STAGED+=("$key"); return; fi
+  cmp -s "$1" "$t" && return
+  [[ -n "$PY" ]] || find_python "$2"
+  PYTHONPATH="$KIT/src" "$PY" -m dev_tooling.merge_profiles "$2" "$t" "$1" || rc=$?
+  case "$rc" in
+    0) ;;
+    3) kept+=("${2#WS:} (kept the first profile's; $3's differs)") ;;
+    *) die "couldn't merge $3's $2" ;;
+  esac
+}
+agents_staged=""
+for item in "${ALL[@]}"; do
+  case "$item" in
+    @profile:*) p="${item#@profile:}"; continue ;;
+    AGENTS) [[ -n "$agents_staged" ]] && continue; agents_staged=1; pairs=("${AGENT_PAIRS[@]}") ;;
+    *) pairs=("$item") ;;
+  esac
+  for pair in "${pairs[@]}"; do
+    while IFS='|' read -r s d; do stage_file "$s" "$d" "$p"; done < <(expand "${pair%%|*}" "${pair#*|}")
+  done
+done
+PAIRS=()
+for key in "${STAGED[@]}"; do PAIRS+=("$STAGE/$key|${key/#@ws\//WS:}"); done
 
 copied=(); skipped=()
 for pair in "${PAIRS[@]}"; do
@@ -194,6 +251,10 @@ echo "Copied (${#copied[@]}):"; printf '  %s\n' "${copied[@]:-none}"
 if [[ ${#skipped[@]} -gt 0 ]]; then
   echo "Skipped, already exist (${#skipped[@]}): merge by hand; see differences with --diff"
   printf '  %s\n' "${skipped[@]}"
+fi
+if [[ ${#kept[@]} -gt 0 ]]; then
+  echo "Not merged, two profiles provide it (${#kept[@]}): compare with --diff for each profile"
+  printf '  %s\n' "${kept[@]}"
 fi
 echo "Git hooks: $hooks"
 if [[ -f "$REPO/CLAUDE.md" ]] && ! grep -q '^@AGENTS.md' "$REPO/CLAUDE.md"; then
