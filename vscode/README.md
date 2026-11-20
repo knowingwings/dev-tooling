@@ -10,11 +10,11 @@ Three layers, each synced a different way:
 
 ## 1. Once per machine (about 10 minutes)
 
-1. Install VS Code, then sign in to **Settings Sync** (gear icon > Backup and Sync Settings) with
-   GitHub or Microsoft, and include Profiles. If your work machine blocks that, keep `user/` in a
-   personal dotfiles repo instead.
-2. `bash user/install-extensions.sh`. This creates two **profiles**, `ROS2` and `Firmware`, each with only
-   the extensions it needs. Switch with the gear icon > Profiles, or pick one per folder.
+1. Install VS Code. Sign in to **Settings Sync** (gear icon > Backup and Sync Settings) with GitHub
+   or Microsoft, and include Profiles. If your work machine blocks Settings Sync, keep `user/` in a
+   personal dotfiles repo.
+2. Run `bash user/install-extensions.sh`. This creates two **profiles**, `ROS2` and `Firmware`. Each
+   profile has only the extensions it needs. Switch with the gear icon > Profiles, or pick one per folder.
    In the Profiles editor, set each profile's *Settings* to "Use Default" so they share one settings file.
 3. Paste `user/settings.json` into *Preferences: Open User Settings (JSON)*.
 4. Machine-specific paths go in user settings (they differ between work and home), e.g.

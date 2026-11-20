@@ -30,8 +30,9 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 | Your VS Code settings and extensions | `vscode/user/` | `install-machine.sh` symlinks settings, so `git pull` updates every machine |
 | Which kit version a project started from | `.dev-tooling-version` in the project | written by `adopt.sh` |
 
-**Updating a project to a newer kit:** bump `rev:` in its `.pre-commit-config.yaml`, then run
-`adopt.sh <profile> <repo> --diff` to see what changed in the copied files and merge what you want.
+**Updating a project to a newer kit:** bump `rev:` in its `.pre-commit-config.yaml`. Then run
+`adopt.sh <profile> <repo> --diff` to see what changed in the copied files, and merge the changes you
+want.
 
 ## Working on the kit
 
