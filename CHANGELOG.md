@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.1 (2026-11-20)
 
 **Fixes: a project's adoption PR now passes the kit's own checks**
 - `check-pr`: a PR that changes `.dev-tooling-version` (a kit adoption or update) can change the
