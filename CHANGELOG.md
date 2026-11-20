@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**New: combine profiles in one repo**
+- `adopt.sh astro,typst <repo>` adopts two profiles, the main one first. `AGENTS.md` gets both stack
+  sections, and the files that both profiles have are merged: pre-commit hooks, `./check` steps and
+  rules, and the VS Code extensions, settings, tasks and launch configurations. For other shared
+  files, the first profile's copy is kept and listed.
+- `--diff` compares with the merged files, so updating a combined repo works the same way.
+- One-profile adoption is unchanged: all seven profiles give the same files and output as before.
+
 **New: `astro` profile, for Astro websites**
 - ESLint 10 (JavaScript, `typescript-eslint`, Astro and accessibility recommended rules, and bans on
   `any`, `==` and `console.log`), Prettier with the Astro plugin, and `astro check` for types.

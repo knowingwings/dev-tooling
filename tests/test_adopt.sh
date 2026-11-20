@@ -57,6 +57,26 @@ echo "== fresh repo gets CLAUDE.md importing AGENTS.md"
 F="$TMP/fresh"; mkdir -p "$F"; git -C "$F" init -q
 "$KIT/scripts/adopt.sh" firmware "$F" >/dev/null 2>&1
 check "CLAUDE.md starts with @AGENTS.md"   '[[ "$(head -1 "$F/CLAUDE.md")" == "@AGENTS.md" ]]'
+echo "== combined profiles (astro,typst)"
+C="$TMP/combined"; mkdir -p "$C"; git -C "$C" init -q
+git -C "$C" remote add origin git@github.com:someone/site.git
+# shellcheck disable=SC2034  # used inside check()'s eval
+cout="$("$KIT/scripts/adopt.sh" astro,typst "$C" 2>&1)"
+check "both stack sections in AGENTS.md"    'grep -q "^## Astro site (this repo)" "$C/AGENTS.md" && grep -q "^## Typst documents (this repo)" "$C/AGENTS.md"'
+check "both profiles' hooks"                '[[ $(grep -cE "^      - id: (prettier|eslint|typstyle|typst-compile)$" "$C/.pre-commit-config.yaml") -eq 4 ]]'
+check "both profiles' check steps"          'grep -qx "name = \"astro-check\"" "$C/patterns.toml" && grep -qx "name = \"compile\"" "$C/patterns.toml"'
+check "both profiles' own files"            '[[ -f "$C/.typst-version" && -f "$C/eslint.config.mjs" ]]'
+check "profile list recorded"               'grep -qx "profile=astro,typst" "$C/.dev-tooling-version"'
+check "TODO says which profile"             'grep -q "^  - \[typst\] " <<< "$cout"'
+check "one default build task"              '[[ $(grep -c "\"isDefault\": true" "$C/.vscode/tasks.json") -eq 1 ]]'
+# shellcheck disable=SC2034  # used inside check()'s eval
+cout2="$("$KIT/scripts/adopt.sh" astro,typst "$C" 2>&1)"
+# shellcheck disable=SC2034  # used inside check()'s eval
+cdiff="$("$KIT/scripts/adopt.sh" astro,typst "$C" --diff 2>&1)"
+check "second run copies nothing"           'grep -q "^Copied (0)" <<< "$cout2"'
+check "--diff: merged files match"          '! grep -qE "^--- repo: (patterns.toml|\.vscode/)" <<< "$cdiff"'
+check "--diff still lists pinned files"     'grep -q "^--- repo: check$" <<< "$cdiff"'
+check "unknown profile in a list fails"     '! "$KIT/scripts/adopt.sh" astro,nope "$TMP/fresh" >/dev/null 2>&1'
 echo "== typst-compile with no entry documents needs no typst"
 mkdir -p "$TMP/fakebin"; printf '#!/bin/sh\nexit 99\n' > "$TMP/fakebin/typst"; chmod +x "$TMP/fakebin/typst"
 printf '# no documents yet\n' > "$TMP/typst/.typst-entries"

@@ -98,6 +98,20 @@ Files it skipped because they already exist: compare with
 `adopt.sh <profile> <repo> --diff` and merge by hand. If you kept your own `CLAUDE.md`, make
 `@AGENTS.md` its first line.
 
+A repo with two stacks gets both profiles: list them with commas, the main one first, for example
+`adopt.sh astro,typst <repo>`. `AGENTS.md` then has a section for each stack. The kit merges the
+files that both profiles have:
+
+- `.pre-commit-config.yaml`: every hook from both. A hook that both have keeps the first profile's
+  settings, and the `files` patterns are joined.
+- `patterns.toml`: the first profile's settings, plus the second profile's `./check` steps and rules.
+- `.vscode/`: the extensions, settings, tasks and launch configurations of both. Only the first
+  profile's build task stays the default.
+
+For any other file that both profiles have, `adopt.sh` keeps the first profile's copy and lists it
+under "Not merged". Merging needs Python 3.10 or newer. Use the same list with `--diff` when you
+update the kit.
+
 ### ros2
 
 - For a repo of packages cloned into a workspace (`~/ros2_ws/src/<repo>`), add
