@@ -82,6 +82,10 @@ plus this stack's section) and a `CLAUDE.md` that imports it, pins the kit's hoo
 adds `.gitignore` entries, writes `.dev-tooling-version` and installs the git hooks. It ends with a
 **Still to do** list for that profile: do those steps (details below).
 
+Every profile also gets the GitHub conventions: an evidence-first PR template, issue templates
+(Task, Bug, Agent mistake → check), CODEOWNERS for the files that define the checks, a `pr-checks`
+workflow, and `docs/FEATURE_MAP.md` to fill in (see "GitHub conventions" below).
+
 Files it skipped because they already exist: compare with
 `adopt.sh <profile> <repo> --diff` and merge by hand. If you kept your own `CLAUDE.md`, make
 `@AGENTS.md` its first line.
@@ -154,6 +158,30 @@ on an `rclcpp::` symbol works; `colcon test` results unchanged.
 **Verify:** `pre-commit run typst-compile --hook-stage pre-push --all-files` prints `ok <doc>` for
 each document; Tinymist preview opens with `Ctrl+K V`.
 
+## GitHub conventions (each project)
+
+**STOP (human), once per repo on GitHub:** Settings > Branches > add a rule for `main`:
+require a pull request, require the `pr-checks` and CI status checks to pass, and require review from
+Code Owners. Without this, the checks below are advice rather than gates.
+
+| Convention | Enforced by | Example |
+| --- | --- | --- |
+| Branch `<type>/<short-description>`, or an agent prefix (`claude/...`) | `check-branch` hook (pre-push) and `pr-checks` | `feat/motor-current-limit`, `fix/123-imu-timestamp` |
+| No direct pushes to `main` | `check-branch` hook, branch protection | open a PR instead |
+| PR title is a Conventional Commit (it becomes the squash-merge commit) | `pr-checks` | `fix(imu): use sensor timestamp for fusion` |
+| PR **Evidence** filled in, exactly one **Risk** box ticked | `pr-checks` | test output, sim/bag run, plot, before/after |
+| Changes to the checks (lint configs, `AGENTS.md`, `.github/`) in their own PR | `pr-checks`, CODEOWNERS | `chore(lint): ban HAL_Delay outside init` |
+
+The workflow is trunk-based: short branches merged into `main` with squash merges, releases cut from
+`v*` tags. To keep a `develop` integration branch, add it to `protected_branches` in the `[git]` table
+of `patterns.toml` and point PRs at it.
+
+Fill in `docs/FEATURE_MAP.md` early: one row per behaviour, with the command that proves it works.
+It's what agents run to produce PR evidence, and what you check that evidence against.
+
+When an agent gets something wrong twice, open an **Agent mistake → check** issue and turn it into a
+rule (here, or in dev-tooling if every project should get it).
+
 ## Phase 3: Smoke test (each project)
 
 Add one deliberately bad line, try to commit, and check the commit is blocked with a message that says
@@ -167,6 +195,7 @@ how to fix it. Then `git restore --staged <file> && git checkout -- <file>`.
 | rust | `std::thread::sleep(std::time::Duration::from_millis(1));` | clippy `disallowed_methods` (run `cargo clippy`) |
 | python | `import os` then `os.system("ls")` | ruff `TID251` |
 | typst | `#set text(font: "Arial")` | typst-compile font failure (on push) |
+| any | commit on a branch named `my-changes`, then `git push` | `check-branch` asks for `<type>/<short-description>` |
 
 ## Updating a project to a newer kit
 

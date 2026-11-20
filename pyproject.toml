@@ -9,6 +9,8 @@ dependencies = ["tomli>=2; python_version < '3.11'"]
 [project.scripts]
 check-patterns = "dev_tooling.check_patterns:main"
 check-comments = "dev_tooling.check_comments:main"
+check-branch = "dev_tooling.check_git:main_branch"
+check-pr = "dev_tooling.check_git:main_pr"
 
 [build-system]
 requires = ["hatchling"]
@@ -33,3 +35,5 @@ ignore = ["ANN401", "S101"]
 "tests/run_tests.py" = ["S603", "S607", "T20"]       # test runner: calls the tools under test, prints results
 "src/dev_tooling/check_comments.py" = ["S603"]   # runs `git diff` / `git ls-files` with fixed arguments
 "tests/test_check_comments.py" = ["S603", "S607", "ANN"]
+"src/dev_tooling/check_git.py" = ["S603"]   # runs git with fixed arguments
+"tests/test_check_git.py" = ["S603", "S607", "ANN"]

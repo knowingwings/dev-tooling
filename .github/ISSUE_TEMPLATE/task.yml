@@ -1,0 +1,44 @@
+name: Task
+description: A piece of work a person or an agent can pick up without asking questions.
+title: "<type>(<scope>): <summary>"
+labels: ["task"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done, and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkable statements. Prefer ones a command can verify ("bag replay shows yaw drift under 0.5 deg/min").
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Proof expected in the PR
+      description: What evidence the PR must attach (test output, sim run, plot, before/after screenshot, FLASH/RAM delta).
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope / out of scope
+      description: Files, packages or behaviours that may change, and ones that must not.
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Expected risk
+      options:
+        - Low (no behaviour change on hardware)
+        - Medium (behaviour change, verifiable off-robot)
+        - High (motion, power, safety, or needs the real robot)
+    validations:
+      required: true

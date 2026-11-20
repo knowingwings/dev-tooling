@@ -24,3 +24,13 @@ critical_section::Mutex<RefCell<T>>, an embassy channel/signal, or RTIC shared r
 [comments]
 enabled = true
 exclude = ["target/**", "tests/**", "**/tests/**", "benches/**", "examples/**"]
+
+# ---- Git and PR conventions (check-branch hook, pr-checks workflow) -----------------------------
+# Defaults shown; uncomment to change. Trunk-based by default: add "develop" to protected_branches
+# to keep an integration branch.
+[git]
+# protected_branches = ["main", "master"]
+# branch_types = ["feat", "feature", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore", "revert", "hotfix", "release"]
+# agent_prefixes = ["claude", "cursor", "codex", "copilot", "agent", "dependabot", "renovate"]
+# require_evidence = true
+# require_risk = true

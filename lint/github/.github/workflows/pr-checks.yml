@@ -1,0 +1,35 @@
+# Checks every pull request's title, body and branch against the dev-tooling conventions, and that
+# changes to the checks themselves aren't mixed with other code. Results appear on the PR.
+name: pr-checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  conventions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev-tooling checks
+        env:
+          KIT_REV: v0.1.0   # adopt.sh sets this to the kit version you adopted
+        run: pip install --quiet "git+https://github.com/knowingwings/dev-tooling@${KIT_REV}"
+
+      - name: Check title, body, branch and changed files
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
+        run: check-pr

@@ -35,4 +35,5 @@ repos:
     hooks:
       - id: check-patterns
       - id: check-comments
+      - id: check-branch
       - id: clang-tidy

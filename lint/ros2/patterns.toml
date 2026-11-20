@@ -51,3 +51,13 @@ callback group with a MultiThreadedExecutor. Spinning belongs in main()."""
 [comments]
 enabled = true
 exclude = ["**/test/**", "**/tests/**", "**/launch/**", "build/**", "install/**", "log/**", "**/third_party/**"]
+
+# ---- Git and PR conventions (check-branch hook, pr-checks workflow) -----------------------------
+# Defaults shown; uncomment to change. Trunk-based by default: add "develop" to protected_branches
+# to keep an integration branch.
+[git]
+# protected_branches = ["main", "master"]
+# branch_types = ["feat", "feature", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore", "revert", "hotfix", "release"]
+# agent_prefixes = ["claude", "cursor", "codex", "copilot", "agent", "dependabot", "renovate"]
+# require_evidence = true
+# require_risk = true

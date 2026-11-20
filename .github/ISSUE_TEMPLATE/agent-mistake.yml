@@ -1,0 +1,52 @@
+name: Agent mistake → check
+description: An agent (or a person) got something wrong. Capture it so a check catches it next time, instead of another line of instructions.
+title: "chore(lint): catch <the mistake>"
+labels: ["agent-mistake"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every correction should become something deterministic: a lint rule, a type, an API that makes the mistake
+        impossible, a test, or a patterns.toml rule. Another line in AGENTS.md is the last resort.
+  - type: textarea
+    id: did
+    attributes:
+      label: What it did
+      description: The code or behaviour, with a link to the PR or commit.
+    validations:
+      required: true
+  - type: textarea
+    id: should
+    attributes:
+      label: What it should have done
+    validations:
+      required: true
+  - type: dropdown
+    id: check
+    attributes:
+      label: Best way to catch it
+      options:
+        - clang-tidy check or CustomFunctions ban
+        - clippy lint or clippy.toml disallowed-method
+        - ruff rule or banned-api
+        - patterns.toml rule (wrong only in some folders)
+        - type / API change that makes it impossible
+        - test (unit, property, launch_testing, HIL)
+        - compiler warning flag
+        - only prose in AGENTS.md (explain why nothing else works)
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where the check belongs
+      options:
+        - dev-tooling (every project gets it)
+        - this project only
+    validations:
+      required: true
+  - type: textarea
+    id: rule
+    attributes:
+      label: Proposed check, with its error message
+      description: Write the message as the fix, so the next agent can act on it without asking.

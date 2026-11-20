@@ -24,3 +24,4 @@ repos:
     rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
     hooks:
       - id: typst-compile
+      - id: check-branch

@@ -5,6 +5,7 @@
 #     hooks:
 #       - id: check-patterns
 #       - id: check-comments
+#       - id: check-branch
 #       - id: clang-tidy
 #
 # Each project keeps its own patterns.toml / .clang-tidy: the rules are per project, the tools are shared.
@@ -22,6 +23,24 @@
   entry: check-comments
   language: python
   types_or: [c, c++, python, rust]
+
+- id: check-branch
+  name: branch name and no direct push to main
+  description: Branch names follow <type>/<short-description> (or an agent prefix); pushes to protected branches are blocked. Configured by [git] in patterns.toml.
+  entry: check-branch
+  language: python
+  pass_filenames: false
+  always_run: true
+  stages: [pre-push]
+
+- id: check-pr
+  name: pull request conventions
+  description: PR title is a Conventional Commit, Evidence and Risk are filled in, check changes aren't mixed with code. Run in CI with PR_TITLE / PR_BODY / PR_HEAD_REF / PR_BASE_REF set.
+  entry: check-pr
+  language: python
+  pass_filenames: false
+  always_run: true
+  stages: [manual]
 
 - id: clang-tidy
   name: clang-tidy (changed files)

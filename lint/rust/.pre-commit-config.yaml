@@ -16,6 +16,7 @@ repos:
     hooks:
       - id: check-patterns
       - id: check-comments
+      - id: check-branch
 
   - repo: local
     hooks:
