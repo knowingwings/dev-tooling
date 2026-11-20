@@ -27,6 +27,32 @@ check "expires within 10 minutes"          'python3 -c "import json,sys,time; d=
 pad "$s" | openssl base64 -d -A > "$TMP/sig.bin"
 check "signature verifies with public key" 'printf "%s.%s" "$h" "$p" | openssl dgst -sha256 -verify "$TMP/builder.pub" -signature "$TMP/sig.bin" >/dev/null'
 
+echo "== key in 1Password"
+FAKE_OP="$TMP/fakebin"; mkdir -p "$FAKE_OP"
+cat > "$FAKE_OP/op" <<OP
+#!/usr/bin/env bash
+case "\$*" in
+  "read --no-newline op://Dev/kw-reviewer/private_key") cat "$DEV_TOOLING_AGENTS_DIR/builder.pem" ;;
+  "read --no-newline op://Dev/kw-reviewer/client_id") printf 'Iv23.fromvault' ;;
+  *) echo "[ERROR] not found: \$*" >&2; exit 1 ;;
+esac
+OP
+chmod +x "$FAKE_OP/op"
+printf 'CLIENT_ID=op://Dev/kw-reviewer/client_id\nKEY=op://Dev/kw-reviewer/private_key\nBOT_LOGIN="kw-reviewer[bot]"\nBOT_ID=99\n' > "$DEV_TOOLING_AGENTS_DIR/reviewer.env"
+before="$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'tmp.*' 2>/dev/null | wc -l)"
+vjwt="$(PATH="$FAKE_OP:$PATH" "$AS" jwt reviewer)"
+after="$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'tmp.*' 2>/dev/null | wc -l)"
+IFS=. read -r vh vp vs <<< "$vjwt"
+pad "$vs" | openssl base64 -d -A > "$TMP/vsig.bin"
+check "signs with the key from 1Password"  'printf "%s.%s" "$vh" "$vp" | openssl dgst -sha256 -verify "$TMP/builder.pub" -signature "$TMP/vsig.bin" >/dev/null'
+check "client id read from 1Password"      'pad "$vp" | openssl base64 -d -A | grep -q "\"iss\":\"Iv23.fromvault\""'
+check "temporary key file removed"         '[[ "$before" == "$after" ]]'
+printf 'CLIENT_ID=Iv23.x\nKEY=op://Dev/missing/key\n' > "$DEV_TOOLING_AGENTS_DIR/ghost.env"
+op_err="$(PATH="$FAKE_OP:$PATH" "$AS" jwt ghost 2>&1 || true)"
+check "1Password errors are explained"     'grep -q "1Password couldn.t read op://Dev/missing/key" <<< "$op_err"'
+noop_err="$(PATH="/usr/bin:/bin" "$AS" jwt ghost 2>&1 || true)"
+check "missing op CLI is explained"        'grep -q "op CLI isn.t installed" <<< "$noop_err"'
+
 echo "== acting as the builder"
 export DEV_TOOLING_AGENT_TOKEN="fake-token-123"
 R="$TMP/repo"; mkdir -p "$R"; cd "$R"; git init -q -b main

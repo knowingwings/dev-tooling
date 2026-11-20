@@ -22,6 +22,9 @@
   `docs/agents/`, Claude Code subagents in `.claude/agents/` (reviewer and publisher can't edit files).
 - `as-agent <role> <command>`: runs git/gh as that role's App (short-lived token, bot identity, pushes
   over HTTPS with the App token) and adds the owner as `Co-authored-by` on every commit.
+- `as-agent` can read App keys (and client IDs) from 1Password: `KEY=op://<vault>/<item>/<file>` in the
+  role's env file. The key is fetched with `op` only when a token is needed, used to sign, and deleted.
+  `DEV_TOOLING_NO_TOKEN_CACHE=1` also keeps the 1-hour tokens off disk.
 - `check-pr` requires `Requested-by: @<person>` on PRs opened by a bot.
 - `auto-merge` workflow: Low risk + approved by someone else + not changing the checks + no hold label
   → merges when green. Does nothing without branch protection and required checks. Uses the

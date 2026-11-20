@@ -22,6 +22,8 @@ for this repo with the firmware profile. Stop at every STOP (human) step."*
 | --- | --- | --- | --- | --- | --- |
 | git, Python 3.10+ | everything | `apt install git python3` | `pacman -S git python` | `brew install git python` | Git for Windows (gives Git Bash) + python.org |
 | uv | lint tools | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `pacman -S uv` | `brew install uv` | `winget install astral-sh.uv` |
+| 1Password CLI `op` (optional) | agent App keys | 1password.com/downloads/command-line | `yay -S 1password-cli` (AUR) | `brew install --cask 1password-cli` | `winget install AgileBits.1Password.CLI` |
+| GitHub CLI `gh` | PRs, agent roles | `apt install gh` | `pacman -S github-cli` | `brew install gh` | `winget install GitHub.cli` |
 | VS Code (Microsoft build) | editor | .deb from code.visualstudio.com | `yay -S visual-studio-code-bin` (not the `code` OSS package) | `brew install --cask visual-studio-code` | `winget install Microsoft.VisualStudioCode` |
 | Docker | ROS 2 | docs.docker.com | `pacman -S docker docker-buildx`, `systemctl enable --now docker.socket` | Docker Desktop | Docker Desktop (WSL2 backend) |
 | Arm GNU toolchain, CMake, Ninja, OpenOCD | C/C++ firmware | `apt install cmake ninja-build openocd` + Arm toolchain | `pacman -S arm-none-eabi-gcc arm-none-eabi-newlib cmake ninja openocd` | `brew install --cask gcc-arm-embedded; brew install cmake ninja open-ocd` | Arm toolchain installer + `winget install Kitware.CMake Ninja-build.Ninja` |
@@ -226,7 +228,20 @@ show up as `<name>[bot]` on every PR, review and commit. A reviewer App's approv
 
    - Where can it be installed: **Only on this account**. Create.
 2. Copy the **Client ID**, then **Generate a private key**.
-3. Save them on each machine you'll run agents from (never in a repo):
+3. Store the key. **Recommended: 1Password.** Nothing sits on disk, and every machine gets the same keys:
+   - In 1Password, create an item named `<you>-<role>` (e.g. in a `Dev` vault), add a text field
+     `client_id` with the Client ID, and attach the downloaded key file renamed to `private-key.pem`.
+     Then delete the download.
+   - On each machine that runs agents (needs the 1Password CLI, `op`, signed in):
+     ```bash
+     mkdir -p ~/.config/dev-tooling/agents && cd ~/.config/dev-tooling/agents
+     printf 'CLIENT_ID=op://Dev/<you>-<role>/client_id\nKEY=op://Dev/<you>-<role>/private-key.pem\n' > <role>.env
+     ```
+     `as-agent` reads the key through `op` only when it needs a fresh token (about once an hour per
+     repo), signs with it, and deletes it straight away. Set `DEV_TOOLING_NO_TOKEN_CACHE=1` to keep
+     even the 1-hour tokens off disk, at the cost of unlocking 1Password more often.
+
+   **Or as a file** (no 1Password):
    ```bash
    mkdir -p ~/.config/dev-tooling/agents && cd ~/.config/dev-tooling/agents
    mv ~/Downloads/<app-name>.*.private-key.pem <role>.pem && chmod 600 <role>.pem

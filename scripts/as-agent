@@ -12,7 +12,11 @@
 # Config, never committed (default ~/.config/dev-tooling/agents, override DEV_TOOLING_AGENTS_DIR):
 #   owner.env    OWNER_NAME="Your Name"  OWNER_EMAIL="<id>+<login>@users.noreply.github.com"
 #   <role>.env   CLIENT_ID=Iv23...       (BOT_LOGIN and BOT_ID are added by `as-agent setup <role>`)
-#   <role>.pem   the App's private key (chmod 600)
+#                KEY=op://<vault>/<item>/<field>   read the private key from 1Password (op CLI) when
+#                                                  signing; nothing is stored on disk
+#   <role>.pem   or keep the private key as a file instead (chmod 600); used when KEY isn't set
+# CLIENT_ID can be an op:// reference too. Set DEV_TOOLING_NO_TOKEN_CACHE=1 to keep even the
+# 1-hour installation tokens off disk (you'll be asked to unlock 1Password more often).
 #
 # Every `git commit` run through as-agent gets "Co-authored-by: OWNER" added, so the history keeps
 # your attribution. Pushes use the App's token over HTTPS even if the remote is SSH.
@@ -35,19 +39,35 @@ load_role() {
   # shellcheck disable=SC1090
   source "$DIR/$role.env"
   [[ -n "$CLIENT_ID" ]] || die "CLIENT_ID missing in $DIR/$role.env"
+  [[ "$CLIENT_ID" == op://* ]] && CLIENT_ID="$(op_read "$CLIENT_ID")"
   OWNER_NAME=""; OWNER_EMAIL=""
   # shellcheck disable=SC1091
   [[ -f "$DIR/owner.env" ]] && source "$DIR/owner.env"
   ROLE="$role"
 }
 
+op_read() {
+  command -v op >/dev/null || die "$1 is a 1Password reference but the op CLI isn't installed"
+  op read --no-newline "$1" || die "1Password couldn't read $1 (signed in? run: op signin)"
+}
+
+TMP_KEY=""
+trap 'rm -f "$TMP_KEY"' EXIT
+
 make_jwt() {
-  [[ -f "$KEY" ]] || die "private key not found: $KEY"
-  local now header payload sig
+  local key_file="$KEY" now header payload sig
+  if [[ "$KEY" == op://* ]]; then
+    TMP_KEY="$(mktemp)"
+    chmod 600 "$TMP_KEY"
+    op_read "$KEY" > "$TMP_KEY"
+    key_file="$TMP_KEY"
+  fi
+  [[ -f "$key_file" ]] || die "private key not found: $key_file"
   now="$(date +%s)"
   header="$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)"
   payload="$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$CLIENT_ID" | b64url)"
-  sig="$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$KEY" -binary | b64url)"
+  sig="$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$key_file" -binary | b64url)"
+  [[ -n "$TMP_KEY" ]] && rm -f "$TMP_KEY" && TMP_KEY=""
   printf '%s.%s.%s' "$header" "$payload" "$sig"
 }
 
@@ -68,7 +88,7 @@ install_token() {
   [[ -n "$slug" ]] || die "no GitHub origin remote here, so no installation to get a token for"
   cache_file="$CACHE/$ROLE-${slug//\//_}.token"
   now="$(date +%s)"
-  if [[ -f "$cache_file" ]]; then
+  if [[ -z "${DEV_TOOLING_NO_TOKEN_CACHE:-}" && -f "$cache_file" ]]; then
     read -r expires token < "$cache_file" || true
     if [[ -n "${expires:-}" && "$expires" -gt $((now + 300)) ]]; then printf '%s' "$token"; return; fi
   fi
@@ -76,7 +96,9 @@ install_token() {
   inst="$(api GET "/repos/$slug/installation" "$jwt" | json "['id']")" \
     || die "the $ROLE App isn't installed on $slug (GitHub > Settings > Applications)"
   token="$(api POST "/app/installations/$inst/access_tokens" "$jwt" | json "['token']")"
-  mkdir -p "$CACHE" && umask 077 && printf '%s %s\n' "$((now + 3300))" "$token" > "$cache_file"
+  if [[ -z "${DEV_TOOLING_NO_TOKEN_CACHE:-}" ]]; then
+    mkdir -p "$CACHE" && umask 077 && printf '%s %s\n' "$((now + 3300))" "$token" > "$cache_file"
+  fi
   printf '%s' "$token"
 }
 
@@ -122,7 +144,7 @@ run_as() {
 }
 
 case "${1:-}" in
-  ""|-h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+  ""|-h|--help) sed -n '2,24p' "$0"; exit 0 ;;
   setup)  [[ $# -eq 2 ]] || die "usage: as-agent setup <role>"; cmd_setup "$2" ;;
   whoami) [[ $# -eq 2 ]] || die "usage: as-agent whoami <role>"; load_role "$2"; identity
           echo "$BOT_LOGIN <$BOT_EMAIL>, co-author: ${OWNER_NAME:-none} <${OWNER_EMAIL:-}>" ;;
