@@ -181,6 +181,46 @@ class AutoMerge(unittest.TestCase):
         self.assertIn("checks themselves", reasons[0])
 
 
+PR_CLI = "import sys; from dev_tooling.check_git import main_pr; sys.exit(main_pr())"
+
+
+class CheckPrCommand(unittest.TestCase):
+    """Runs the real command the way CI does (environment variables), not just the functions."""
+
+    def run_cli(self, **env: str) -> subprocess.CompletedProcess[str]:
+        src = Path(__file__).resolve().parent.parent / "src"
+        full_env = {"PYTHONPATH": str(src), "PATH": "/usr/bin:/bin:/usr/local/bin", **env}
+        with tempfile.TemporaryDirectory() as d:
+            return subprocess.run(
+                [sys.executable, "-c", PR_CLI],
+                cwd=d,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=full_env,
+            )
+
+    def test_good_pr_passes(self) -> None:
+        p = self.run_cli(
+            PR_TITLE="fix(imu): use sensor timestamp",
+            PR_BODY=filled(),
+            PR_HEAD_REF="fix/imu-timestamp",
+            PR_AUTHOR="knowingwings",
+        )
+        self.assertEqual((p.returncode, p.stderr), (0, ""))
+
+    def test_bot_pr_without_requested_by_fails(self) -> None:
+        p = self.run_cli(
+            PR_TITLE="fix(imu): use sensor timestamp",
+            PR_BODY=filled(),
+            PR_HEAD_REF="fix/imu-timestamp",
+            PR_AUTHOR="kw-builder[bot]",
+        )
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("Requested-by", p.stdout)
+        self.assertEqual(p.stderr, "")
+
+
 HOOK = "import sys; from dev_tooling.check_git import main_branch; sys.exit(main_branch())"
 
 

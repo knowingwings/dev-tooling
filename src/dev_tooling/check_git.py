@@ -302,6 +302,7 @@ def main_pr() -> int:
     ap.add_argument(
         "--base", default=os.environ.get("PR_BASE_REF", ""), help="diff against origin/<base>"
     )
+    ap.add_argument("--author", default=os.environ.get("PR_AUTHOR", ""))
     args = ap.parse_args()
     root = Path.cwd()
     cfg = load_config(root, args.config)
