@@ -5,6 +5,7 @@ pytest:passed 1
 ruff:ANN001 1
 ruff:ANN201 1
 ruff:BLE001 1
+ruff:RUF001 1
 ruff:S110 1
 ruff:S301 1
 ruff:S605 1

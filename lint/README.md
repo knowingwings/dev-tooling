@@ -26,6 +26,8 @@ facts, suppressions with a reason, and licence headers. To tune the rule or turn
 
 ## Python (`python/`)
 For test rigs, HIL scripts, serial/CAN tools and analysis (ROS 2 Python packages use `ros2/ruff.toml`).
+- ruff accepts the typographic characters that British English text uses (dashes, curly quotes, `×`,
+  `−`, primes, no-break spaces). It still flags look-alike letters from other alphabets.
 - uv for environments, ruff for lint and format, **pyright** for types (the same engine as Pylance, so the editor and
   pre-commit agree). Astral's `ty` is faster but still in beta, so it's worth trying later.
 - pytest with a `hardware` marker that is **deselected by default**. `pytest` is what an agent runs,

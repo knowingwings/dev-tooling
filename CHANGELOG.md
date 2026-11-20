@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Changed: ruff accepts British typography (python and ros2 profiles)**
+- `allowed-confusables`: en and em dashes, curly quotes, `×`, the minus sign `−`, primes and the
+  no-break spaces. RUF001-003 flagged all of them in docstrings, comments and strings, for example
+  `2–5 MB` and `l’élève`. Look-alike letters, such as a Cyrillic `а` in a Latin word, are still
+  flagged.
+
 **New: combine profiles in one repo**
 - `adopt.sh astro,typst <repo>` adopts two profiles, the main one first. `AGENTS.md` gets both stack
   sections, and the files that both profiles have are merged: pre-commit hooks, `./check` steps and
