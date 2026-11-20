@@ -10,6 +10,8 @@
   change keeps the sentence or paragraph length. A spelling fix in a long paragraph no longer fails.
 - `typos`: the Typst built-ins `center`, `color` and `gray` are accepted in `.typ` files. Before,
   every Typst document that used them failed.
+- `typos`: HTML tags in docs are skipped, so CSS such as `style="text-align: center"` in a Markdown
+  page passes. The text between the tags is still checked.
 - `docs/FEATURE_MAP.md` template: split a 27-word sentence that failed `check-prose` on adoption.
 
 ## v0.3.0 (2026-11-20)
