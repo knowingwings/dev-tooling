@@ -53,6 +53,7 @@ case "$(ls "$TMP/ros2/.devcontainer" 2>/dev/null)" in *Dockerfile*) echo "  ok  
 grep -q "disallowed-macros" "$TMP/rust-embedded/clippy.toml" && echo "  ok   rust-embedded uses embedded clippy.toml" || { echo "  FAIL rust-embedded clippy.toml"; fail=1; }
 [[ -f "$TMP/astro/eslint.config.mjs" && -f "$TMP/astro/.prettierrc.json" ]] && echo "  ok   astro ESLint and Prettier configs copied" || { echo "  FAIL astro configs"; fail=1; }
 grep -qx "node_modules/" "$TMP/astro/.gitignore" && echo "  ok   astro ignores node_modules/" || { echo "  FAIL astro .gitignore"; fail=1; }
+# shellcheck disable=SC2034  # used inside check()'s eval
 PC="$TMP/python/.pre-commit-config.yaml"
 check "python ruff hooks use the project's ruff"  'grep -q "entry: uv run ruff check --fix" "$PC" && ! grep -q "ruff-pre-commit" "$PC"'
 check "python pyright hook checks staged files"   '! sed -n "/id: pyright/,/^$/p" "$PC" | grep -q "pass_filenames"'
