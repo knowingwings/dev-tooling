@@ -5,7 +5,9 @@ such as `claude/...`), and nothing is pushed straight to a protected branch.
 
 check-pr (CI on pull requests): the title is a Conventional Commit (it becomes the squash-merge
 commit), the body's Evidence section is filled in and one Risk box is ticked, and changes to the
-checks themselves (lint configs, AGENTS.md, CI) aren't mixed with other code changes.
+checks themselves (lint configs, AGENTS.md, CI) aren't mixed with other code changes. A PR that
+adopts or updates the kit (it changes `.dev-tooling-version`) is the exception: it has to change the
+checks and the files they need together, and the owner reviews it because the file is protected.
 
 check-automerge (CI): whether a PR may merge itself once its checks pass. Only Low risk, approved
 by someone other than the author, not touching the checks themselves, and not labelled to hold.
@@ -87,8 +89,11 @@ DEFAULTS: dict[str, object] = {
         "rust-toolchain.toml",
         "cmake/warnings.cmake",
         ".typst-version",
+        ".dev-tooling-version",
     ],
 }
+
+KIT_VERSION_FILE = ".dev-tooling-version"
 
 
 @dataclass
@@ -241,9 +246,13 @@ def automerge_reasons(
 
 
 def mixed_change_problem(changed: list[str], cfg: GitConfig) -> str | None:
+    """A problem when checks and other code change together, except in a kit adoption or update."""
+
     def protected(p: str) -> bool:
         return any(fnmatch.fnmatch(p, g) for g in cfg.protected_paths)
 
+    if KIT_VERSION_FILE in changed:
+        return None
     env = [p for p in changed if protected(p)]
     other = [p for p in changed if not protected(p)]
     if env and other:

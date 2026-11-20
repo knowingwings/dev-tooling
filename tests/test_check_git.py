@@ -125,6 +125,14 @@ class MixedChanges(unittest.TestCase):
         self.assertIsNone(mixed_change_problem(["patterns.toml", ".clang-tidy"], CFG))
         self.assertIsNone(mixed_change_problem(["src/motor.c", "docs/FEATURE_MAP.md"], CFG))
 
+    def test_kit_adoption_or_update_may_mix(self) -> None:
+        adoption = [".dev-tooling-version", "AGENTS.md", ".github/CODEOWNERS", "check", "README.md"]
+        self.assertIsNone(mixed_change_problem(adoption, CFG))
+
+    def test_kit_version_file_is_protected(self) -> None:
+        self.assertIsNotNone(mixed_change_problem(["patterns.toml", "src/motor.c"], CFG))
+        self.assertIn(".dev-tooling-version", CFG.protected_paths)
+
 
 ON = GitConfig(**{**DEFAULTS, "automerge": True})  # type: ignore[arg-type]
 
@@ -161,6 +169,10 @@ class AutoMerge(unittest.TestCase):
 
     def test_unticked_risk(self) -> None:
         self.assertIn("not set", self.reasons(body=TEMPLATE)[0])
+
+    def test_kit_update_waits_for_a_human(self) -> None:
+        reasons = self.reasons(changed=[".dev-tooling-version", "README.md"])
+        self.assertIn("changes the checks themselves (.dev-tooling-version)", reasons[0])
 
     def test_needs_approval_from_someone_else(self) -> None:
         self.assertIn("no approval", self.reasons(reviews=[])[0])

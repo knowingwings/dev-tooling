@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+**Fixes: a project's adoption PR now passes the kit's own checks**
+- `check-pr`: a PR that changes `.dev-tooling-version` (a kit adoption or update) can change the
+  checks and other files together. `.dev-tooling-version` is now a protected path and in CODEOWNERS,
+  so the owner reviews these PRs and auto-merge never takes them.
+- `check-prose`: a problem that the old version of the doc already had is not reported when the
+  change keeps the sentence or paragraph length. A spelling fix in a long paragraph no longer fails.
+- `typos`: the Typst built-ins `center`, `color` and `gray` are accepted in `.typ` files. Before,
+  every Typst document that used them failed.
+- `docs/FEATURE_MAP.md` template: split a 27-word sentence that failed `check-prose` on adoption.
+
 ## v0.3.0 (2026-11-20)
 
 **New: house style for docs, and secrets checks (merged from the owner's machine AGENTS.md)**

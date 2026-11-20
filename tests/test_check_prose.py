@@ -111,6 +111,33 @@ class ChangedBlocksOnly(unittest.TestCase):
             self.assertEqual(p.returncode, 1)
             self.assertIn("docs/guide.md:3: [sentence-too-long]", p.stdout)
 
+    def test_spelling_fix_keeps_old_problems_quiet(self) -> None:
+        long_us = " ".join(["word"] * 25) + " color."
+        para_us = " ".join(f"Line {i} has a color." for i in range(7))
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            doc = root / "README.md"
+            doc.write_text(f"{long_us}\n\n{para_us}\n")
+            git = ["git", "-C", d, "-c", "user.name=t", "-c", "user.email=t@t"]
+            subprocess.run([*git, "init", "-q"], check=True)
+            subprocess.run([*git, "add", "-A"], check=True)
+            subprocess.run([*git, "commit", "-qm", "init"], check=True)
+            cmd = [sys.executable, "-m", "dev_tooling.check_prose", "--root", d, "README.md"]
+            env = {"PYTHONPATH": str(KIT / "src"), "PATH": "/usr/bin:/bin"}
+
+            fixed = f"{long_us}\n\n{para_us}\n".replace("color", "colour")
+            doc.write_text(fixed)
+            subprocess.run([*git, "add", "-A"], check=True)
+            p = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
+            self.assertEqual(p.returncode, 0, p.stdout)
+
+            doc.write_text(fixed.replace("word colour.", "word word colour.", 1))
+            subprocess.run([*git, "add", "-A"], check=True)
+            p = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
+            self.assertEqual(p.returncode, 1)
+            self.assertIn("README.md:1: [sentence-too-long] 27 words", p.stdout)
+            self.assertNotIn("paragraph-too-long", p.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

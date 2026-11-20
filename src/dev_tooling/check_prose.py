@@ -10,7 +10,9 @@ as it is, put `lint-allow(prose): <reason>` in a comment on the line above it
 (`<!-- ... -->` in Markdown, `// ...` in Typst).
 
 Configured by an optional [prose] table in patterns.toml. By default only blocks that contain a line
-added in the staged change are checked, so existing docs don't fail when touched.
+added in the staged change are checked, so existing docs don't fail when touched. A problem that the
+old version of the file already had, with the same number of words and mostly the same words (a
+spelling fix, for example), isn't reported either: the change didn't make it.
 
     check-prose [files...]            # pre-commit: staged files, changed blocks only
     check-prose --base origin/main    # CI: blocks changed since a base ref
@@ -21,11 +23,12 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dev_tooling.check_comments import _match_any, added_lines, tracked_files
+from dev_tooling.check_comments import _git, _match_any, added_lines, tracked_files
 
 try:
     import tomllib
@@ -224,6 +227,54 @@ def problems(src: str, typst: bool, cfg: Config) -> list[tuple[int, Block, str, 
     return found
 
 
+def unit_words(block: Block, line: int, rule: str, typst: bool, cfg: Config) -> list[str]:
+    """The words of the sentence (for paragraph-too-long, the paragraph) that a problem is about."""
+    sents = sentences(block, typst)
+    if rule == "paragraph-too-long":
+        return [w for _, s in sents for w in WORD.findall(s)]
+    limit = cfg.max_words_step if block.kind == "step" else cfg.max_words
+    for ln, s in sents:
+        words = WORD.findall(s)
+        if ln == line and len(words) > limit:
+            return words
+    return []
+
+
+def old_text(root: Path, rel: str, base: str | None) -> str | None:
+    """The file before the change: at the merge base with `base`, or at HEAD for a staged change."""
+    rev = "HEAD"
+    if base:
+        mb = subprocess.run(
+            [_git(), "merge-base", base, "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if mb.returncode != 0:
+            return None
+        rev = mb.stdout.strip()
+    p = subprocess.run(
+        [_git(), "show", f"{rev}:{rel}"], cwd=root, capture_output=True, text=True, check=False
+    )
+    return p.stdout if p.returncode == 0 else None
+
+
+def carried_over(words: list[str], rule: str, old: list[tuple[str, list[str]]]) -> bool:
+    """True when the old file had this problem in a unit of the same length with 80% the same words.
+
+    The matching old problem is removed from `old`, so each old problem excuses one new one only.
+    """
+    for i, (old_rule, old_words) in enumerate(old):
+        if old_rule != rule or len(old_words) != len(words) or not words:
+            continue
+        same = sum(a == b for a, b in zip(words, old_words, strict=True))
+        if same * 5 >= len(words) * 4:
+            del old[i]
+            return True
+    return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -253,8 +304,17 @@ def main() -> int:
         typst = path.suffix == ".typ"
         found = problems(path.read_text(errors="replace"), typst, cfg)
         new = added_lines(root, rel, args.base) if only_new and found else None
+        before = old_text(root, rel, args.base) if new is not None else None
+        old = (
+            [(r, unit_words(b, ln, r, typst, cfg)) for ln, b, r, _ in problems(before, typst, cfg)]
+            if before is not None
+            else []
+        )
         for line, b, rule, msg in found:
+            carried = bool(old) and carried_over(unit_words(b, line, rule, typst, cfg), rule, old)
             if new is not None and not any(ln in new for ln in range(b.line, b.end_line + 1)):
+                continue
+            if carried:
                 continue
             sys.stdout.write(f"{rel}:{line}: [{rule}] {msg}\n")
             failures += 1

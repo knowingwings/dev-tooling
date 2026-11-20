@@ -1,7 +1,7 @@
 # Feature map
 
 Every behaviour this project has, seen from the outside, and how to prove it still works. Agents and
-people use it the same way: when a change touches a feature, run that feature's check and put the
+people use it the same way. When a change touches a feature, run that feature's check and put the
 result in the PR's **Evidence** section. A feature with no check is the next thing to fix.
 
 Keep one row per behaviour someone would notice if it broke. Prefer checks that a command can run

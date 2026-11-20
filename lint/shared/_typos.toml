@@ -10,3 +10,13 @@ extend-ignore-re = [
 ]
 
 [default.extend-words]
+
+# Typst built-ins that use American spelling (`center`, `color`, `gray`). Typos can't tell Typst
+# code from Typst prose, so these words are accepted in .typ files only.
+[type.typst]
+extend-glob = ["*.typ"]
+
+[type.typst.extend-words]
+center = "center"
+color = "color"
+gray = "gray"
