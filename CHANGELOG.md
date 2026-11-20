@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 (2026-11-20)
 
 **New: house style for docs, and secrets checks (merged from the owner's machine AGENTS.md)**
 - AGENTS.md gains Writing (British English and ASD-STE100 for docs), Secrets (1Password CLI) and
@@ -13,6 +13,14 @@
   `patterns.toml` sets paths and limits.
 - `check-secrets` hook: blocks private keys, well-known token formats, and literal values for
   KEY/TOKEN/SECRET/PASSWORD variables in env files (use `op://` references and `op run`).
+- The kit runs `typos`, `check-prose` and `check-secrets` on itself in CI. Its own docs are
+  rewritten in STE so that they pass `check-prose`.
+
+**Fixes**
+- `as-agent` picked the Windows Store `python3` stub ("Python was not found") and failed with a
+  misleading "GitHub rejected the JWT". It now uses the first `python3`, `python` or `py` that runs.
+
+## v0.2.0 (2026-11-20)
 
 **New: GitHub conventions, enforced (from Lauren Tan's evidence-over-diffs approach)**
 - Every profile gets an evidence-first PR template (Evidence, Risk / blast radius, suppressions and
@@ -45,8 +53,6 @@
 
 **Fixes**
 - `adopt.sh` exited silently in a repo with no `origin` remote.
-- `as-agent` picked the Windows Store `python3` stub ("Python was not found") and failed with a
-  misleading "GitHub rejected the JWT". It now uses the first `python3`, `python` or `py` that runs.
 
 ## v0.1.0 (2026-11-20)
 
