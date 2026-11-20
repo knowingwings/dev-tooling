@@ -15,6 +15,7 @@ env:
   RUST_VERSION: "1.97.0"
   TYPST_VERSION: "0.15.1"     # keep in step with lint/typst/.typst-version
   TYPSTYLE_VERSION: "0.15.3"
+  TYPOS_VERSION: "1.52.2"     # keep in step with the typos rev in lint/*/.pre-commit-config.yaml
 
 jobs:
   rules:
@@ -31,6 +32,7 @@ jobs:
         run: |
           uv tool install "ruff==${RUFF_VERSION}"
           uv tool install "clang-tidy==${CLANG_TIDY_VERSION}"
+          uv tool install "typos==${TYPOS_VERSION}"
           clang-tidy --version
 
       - name: Install Rust
@@ -52,9 +54,16 @@ jobs:
           ruff format --check src tests/*.py
           shellcheck -S warning scripts/*.sh scripts/as-agent lint/shared/*.sh lint/shared/check tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
           PYTHONPATH=src python3 -m dev_tooling.check_comments --all-lines src/dev_tooling/*.py tests/run_tests.py
+          PYTHONPATH=src python3 -m dev_tooling.check_secrets
+          git ls-files '*.md' '*.typ' | xargs typos --config lint/shared/_typos.toml --force-exclude
+          test "$(grep -A1 crate-ci/typos lint/python/.pre-commit-config.yaml | grep -oE 'v[0-9]+(\.[0-9]+)+')" = "v${TYPOS_VERSION}"
+
+      - name: Changed docs follow the STE length rules
+        if: github.event_name == 'pull_request'
+        run: PYTHONPATH=src python3 -m dev_tooling.check_prose --base "origin/${{ github.base_ref }}"
 
       - name: Checker unit tests
-        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py tests/test_check.py
+        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py tests/test_check.py tests/test_check_prose.py tests/test_check_secrets.py
 
       - name: as-agent (offline)
         run: bash tests/test_as_agent.sh
