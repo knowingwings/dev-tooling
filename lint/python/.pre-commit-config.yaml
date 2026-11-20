@@ -1,4 +1,6 @@
 # pip install pre-commit (or `uv tool install pre-commit`) && pre-commit install && pre-commit install --hook-type pre-push
+# The commit hooks check the files you commit, with the project's own ruff and pyright (uv.lock).
+# ./check and CI check the whole project; pytest runs on push.
 exclude: ^(\.venv|build|dist)/
 
 repos:
@@ -11,13 +13,6 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=2048]   # keeps captured logs and datasets out of git
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
 
   - repo: https://github.com/crate-ci/typos
     rev: v1.52.2
@@ -36,12 +31,23 @@ repos:
 
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff (files you commit)
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+
+      - id: ruff-format
+        name: ruff format (files you commit)
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
+
       - id: pyright
-        name: pyright
+        name: pyright (files you commit)
         entry: uv run pyright
         language: system
         types: [python]
-        pass_filenames: false
 
       - id: pytest
         name: pytest (no hardware)

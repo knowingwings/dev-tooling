@@ -10,6 +10,14 @@
 - `--diff` compares with the merged files, so updating a combined repo works the same way.
 - One-profile adoption is unchanged: all seven profiles give the same files and output as before.
 
+**Changed: python commit hooks check the files you commit, with the project's own tools**
+- The `pyright` hook checks the files you commit, as the `ruff` hook already did. `./check` and CI
+  still check the whole project. Before, any commit with a Python file failed until the whole
+  project had no pyright errors, so a repo with old errors couldn't be fixed in small commits.
+- The `ruff` and `ruff-format` hooks run `uv run ruff`, the version in `uv.lock`. Before, they used
+  ruff-pre-commit v0.8.6 while `./check` used the project's ruff, so the two could disagree (for
+  example, the old version flagged `do_GET` in an `http.server` handler).
+
 **New: `astro` profile, for Astro websites**
 - ESLint 10 (JavaScript, `typescript-eslint`, Astro and accessibility recommended rules, and bans on
   `any`, `==` and `console.log`), Prettier with the Astro plugin, and `astro check` for types.
