@@ -1,4 +1,4 @@
-# Rust rules for the check-patterns hook from robot-dev-kit (same checker as the C/C++ and ROS profiles).
+# Rust rules for the check-patterns hook from dev-tooling (same checker as the C/C++ and ROS profiles).
 # Mostly for single-crate repos: in a workspace, the per-crate `unsafe_code = "deny"` lint does the same job.
 
 [[rule]]

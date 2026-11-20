@@ -1,4 +1,4 @@
-# Project rules for embedded firmware, enforced by the check-patterns pre-commit hook from robot-dev-kit.
+# Project rules for embedded firmware, enforced by the check-patterns pre-commit hook from dev-tooling.
 # Adjust the directory names (bsp/, drivers/, Drivers/, app/) to your layout.
 # These encode the architecture: hardware access lives in one layer, so app logic
 # can be unit-tested on your laptop and reviewed without a datasheet open.

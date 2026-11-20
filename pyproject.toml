@@ -1,21 +1,21 @@
 # Makes this repo installable as a pre-commit hook source (see .pre-commit-hooks.yaml).
 [project]
-name = "robot-dev-kit"
+name = "dev-tooling"
 version = "0.1.0"
-description = "Lint rules, editor config and setup scripts for ROS 2, embedded C/C++, Rust and Python robotics repos"
+description = "Lint rules, editor config, agent instructions and setup scripts for ROS 2, embedded C/C++, Rust, Python and Typst repos"
 requires-python = ">=3.10"
 dependencies = ["tomli>=2; python_version < '3.11'"]
 
 [project.scripts]
-check-patterns = "robot_dev_kit.check_patterns:main"
-check-comments = "robot_dev_kit.check_comments:main"
+check-patterns = "dev_tooling.check_patterns:main"
+check-comments = "dev_tooling.check_comments:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/robot_dev_kit"]
+packages = ["src/dev_tooling"]
 
 [tool.ruff]
 line-length = 100
@@ -29,7 +29,7 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "RUF", "ANN", "PTH", "PERF"
 ignore = ["ANN401", "S101"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/robot_dev_kit/check_patterns.py" = ["S603"]   # runs `git ls-files` with a fixed argument list
+"src/dev_tooling/check_patterns.py" = ["S603"]   # runs `git ls-files` with a fixed argument list
 "tests/run_tests.py" = ["S603", "S607", "T20"]       # test runner: calls the tools under test, prints results
-"src/robot_dev_kit/check_comments.py" = ["S603"]   # runs `git diff` / `git ls-files` with fixed arguments
+"src/dev_tooling/check_comments.py" = ["S603"]   # runs `git diff` / `git ls-files` with fixed arguments
 "tests/test_check_comments.py" = ["S603", "S607", "ANN"]

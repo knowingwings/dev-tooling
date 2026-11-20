@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from robot_dev_kit.check_comments import (  # noqa: E402
+from dev_tooling.check_comments import (  # noqa: E402
     DEFAULTS,
     Config,
     c_like_comments,
@@ -116,7 +116,7 @@ class NewLinesOnly(unittest.TestCase):
             subprocess.run([*git, "add", "-A"], cwd=root, check=True)
             src = Path(__file__).resolve().parent.parent / "src"
             p = subprocess.run(
-                [sys.executable, "-m", "robot_dev_kit.check_comments", "m.c"],
+                [sys.executable, "-m", "dev_tooling.check_comments", "m.c"],
                 cwd=root, capture_output=True, text=True, check=False,
                 env={"PYTHONPATH": str(src), "PATH": "/usr/bin:/bin:/usr/local/bin"},
             )

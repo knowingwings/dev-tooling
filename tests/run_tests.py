@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for robot-dev-kit: run every profile's tools against deliberately bad fixtures and
+"""Self-test for dev-tooling: run every profile's tools against deliberately bad fixtures and
 compare the rule hits with tests/expected/<profile>.txt.
 
     python3 tests/run_tests.py                 # all profiles; tools missing locally are skipped
@@ -57,7 +57,7 @@ def git_init(d: Path) -> None:
 
 def patterns(d: Path) -> Counter[str]:
     out = run(
-        [sys.executable, "-m", "robot_dev_kit.check_patterns"],
+        [sys.executable, "-m", "dev_tooling.check_patterns"],
         d,
         env={"PYTHONPATH": str(KIT / "src")},
     )
@@ -74,7 +74,7 @@ def patterns(d: Path) -> Counter[str]:
 
 def comments(d: Path) -> Counter[str]:
     out = run(
-        [sys.executable, "-m", "robot_dev_kit.check_comments"],
+        [sys.executable, "-m", "dev_tooling.check_comments"],
         d,
         env={"PYTHONPATH": str(KIT / "src")},
     )

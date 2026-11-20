@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Add a robot-dev-kit profile to a project repo.
+# Add a dev-tooling profile to a project repo.
 #
 #   scripts/adopt.sh <profile> <repo> [--workspace <dir>] [--diff] [--dry-run]
 #
@@ -10,7 +10,7 @@
 #   --dry-run    print what would be copied
 #
 # Never overwrites a file: anything that already exists is listed so you can merge it by hand
-# (use --diff to see the differences). Writes .robot-kit-version and pins the shared pre-commit
+# (use --diff to see the differences). Writes .dev-tooling-version and pins the shared pre-commit
 # hooks to this kit's version.
 set -euo pipefail
 
@@ -133,7 +133,7 @@ fi
 touch "$REPO/.gitignore"
 for g in "${IGNORE[@]}"; do grep -qxF "$g" "$REPO/.gitignore" || echo "$g" >> "$REPO/.gitignore"; done
 
-printf 'profile=%s\nkit_version=%s\nadopted=%s\n' "$PROFILE" "$VERSION" "$(date +%F)" > "$REPO/.robot-kit-version"
+printf 'profile=%s\nkit_version=%s\nadopted=%s\n' "$PROFILE" "$VERSION" "$(date +%F)" > "$REPO/.dev-tooling-version"
 
 if command -v pre-commit >/dev/null && [[ -f "$REPO/.pre-commit-config.yaml" ]]; then
   (cd "$REPO" && pre-commit install >/dev/null && pre-commit install --hook-type pre-push >/dev/null) \
@@ -142,7 +142,7 @@ else
   hooks="not installed (pre-commit missing: uv tool install pre-commit)"
 fi
 
-echo "robot-dev-kit $VERSION, profile $PROFILE -> $REPO"
+echo "dev-tooling $VERSION, profile $PROFILE -> $REPO"
 echo
 echo "Copied (${#copied[@]}):"; printf '  %s\n' "${copied[@]:-none}"
 if [[ ${#skipped[@]} -gt 0 ]]; then

@@ -1,4 +1,4 @@
-# Settings for robot-dev-kit hooks in a standalone Python project.
+# Settings for dev-tooling hooks in a standalone Python project.
 
 # ---- No new comments (check-comments hook) -----------------------------------------------------
 # Comments go stale and agents use them to justify workarounds: say it in a name, a type hint, a

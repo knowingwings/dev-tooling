@@ -13,7 +13,7 @@ follow it.
 - Never edit a lint config to make a check pass. Report the failure.
 - At the end of each phase, report every Verify command and its result.
 
-To hand a phase to an agent, open the project and say: *"Follow Phase 2 of ~/robot-dev-kit/docs/SETUP.md
+To hand a phase to an agent, open the project and say: *"Follow Phase 2 of ~/dev-tooling/docs/SETUP.md
 for this repo with the firmware profile. Stop at every STOP (human) step."*
 
 ## Prerequisites
@@ -35,8 +35,8 @@ On Windows, run the scripts from Git Bash; ROS 2 runs in Docker Desktop or WSL2.
 ## Phase 1: Machine (once per machine)
 
 ```bash
-git clone git@github.com:knowingwings/robot-dev-kit.git ~/robot-dev-kit
-~/robot-dev-kit/scripts/install-machine.sh
+git clone git@github.com:knowingwings/dev-tooling.git ~/dev-tooling
+~/dev-tooling/scripts/install-machine.sh
 ```
 
 This installs pre-commit, ruff and clang-tidy (20+) with uv, installs the VS Code extensions into
@@ -59,13 +59,13 @@ so no machine-specific paths go into the shared settings file.
 | `clang-tidy --version` | LLVM 20 or newer, from `~/.local/bin` |
 | `pre-commit --version`, `ruff --version` | both print a version |
 | `code --profile ROS2 --list-extensions \| wc -l` | 18 or more |
-| VS Code settings file | a link to `~/robot-dev-kit/vscode/user/settings.json` (Windows without Developer Mode: a copy) |
+| VS Code settings file | a link to `~/dev-tooling/vscode/user/settings.json` (Windows without Developer Mode: a copy) |
 
 ## Phase 2: Project (once per project)
 
 ```bash
 cd <repo> && git switch -c dev-env-setup
-~/robot-dev-kit/scripts/adopt.sh <profile> <repo>
+~/dev-tooling/scripts/adopt.sh <profile> <repo>
 ```
 
 | Profile | For |
@@ -79,7 +79,7 @@ cd <repo> && git switch -c dev-env-setup
 
 `adopt.sh` copies the profile's files without overwriting anything, builds `AGENTS.md` (shared rules
 plus this stack's section) and a `CLAUDE.md` that imports it, pins the kit's hooks to the kit version,
-adds `.gitignore` entries, writes `.robot-kit-version` and installs the git hooks. It ends with a
+adds `.gitignore` entries, writes `.dev-tooling-version` and installs the git hooks. It ends with a
 **Still to do** list for that profile: do those steps (details below).
 
 Files it skipped because they already exist: compare with
@@ -170,9 +170,9 @@ how to fix it. Then `git restore --staged <file> && git checkout -- <file>`.
 
 ## Updating a project to a newer kit
 
-1. `git -C ~/robot-dev-kit pull`
-2. In the project, bump `rev:` for robot-dev-kit in `.pre-commit-config.yaml` to the new tag.
-3. `~/robot-dev-kit/scripts/adopt.sh <profile> <repo> --diff` and merge what you want.
+1. `git -C ~/dev-tooling pull`
+2. In the project, bump `rev:` for dev-tooling in `.pre-commit-config.yaml` to the new tag.
+3. `~/dev-tooling/scripts/adopt.sh <profile> <repo> --diff` and merge what you want.
 
 ## Daily workflow
 

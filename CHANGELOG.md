@@ -2,10 +2,10 @@
 
 ## v0.1.0 (2026-11-20)
 
-First version as a repo (previously two zips: robot-lint-kit, vscode-setup).
+First version as a repo (previously two zips: dev-tooling, vscode-setup).
 
 **New**
-- `scripts/adopt.sh`: adds a profile to a project, never overwrites, pins hooks, writes `.robot-kit-version`; `--diff` for updates.
+- `scripts/adopt.sh`: adds a profile to a project, never overwrites, pins hooks, writes `.dev-tooling-version`; `--diff` for updates.
 - `scripts/install-machine.sh`: CLI tools, extensions, settings symlinked from the repo. Detects
   Code - OSS / VSCodium (Arch) and warns; Windows falls back to a copy when symlinks aren't allowed.
 - `check-patterns` and `clang-tidy` are pre-commit hooks served from this repo, so projects no longer copy `tools/`.

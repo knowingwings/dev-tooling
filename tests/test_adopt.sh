@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks scripts/adopt.sh for every profile: copies the right files, never overwrites,
-# pins the hook rev, writes .robot-kit-version, and --diff reports differences.
+# pins the hook rev, writes .dev-tooling-version, and --diff reports differences.
 set -euo pipefail
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
@@ -19,10 +19,10 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   check "AGENTS.md has shared base"          'grep -q "^## Comments" "$R/AGENTS.md" && grep -q "^## Hardware safety" "$R/AGENTS.md"'
   check "AGENTS.md has stack section"        'grep -qE "^## (ROS 2|Embedded C/C\+\+ firmware|Rust|Python|Typst documents) \(this repo\)" "$R/AGENTS.md"'
   check "import hint for kept CLAUDE.md"     'grep -q "^  @AGENTS.md" <<< "$out"'
-  check ".robot-kit-version written"         'grep -q "^profile=$profile$" "$R/.robot-kit-version"'
+  check ".dev-tooling-version written"         'grep -q "^profile=$profile$" "$R/.dev-tooling-version"'
   check ".vscode copied"                     '[[ -f "$R/.vscode/settings.json" ]]'
   check "pre-commit config copied"           '[[ -f "$R/.pre-commit-config.yaml" ]]'
-  if grep -q "robot-dev-kit" "$R/.pre-commit-config.yaml"; then
+  if grep -q "dev-tooling" "$R/.pre-commit-config.yaml"; then
     check "hook rev pinned to kit version"   '! grep -q "rev: v0.1.0   # adopt" "$R/.pre-commit-config.yaml" || [[ "$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null)" == v0.1.0 ]]'
   fi
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'

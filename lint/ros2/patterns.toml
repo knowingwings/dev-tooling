@@ -1,4 +1,4 @@
-# Project rules for ROS 2 repos, enforced by the check-patterns pre-commit hook from robot-dev-kit.
+# Project rules for ROS 2 repos, enforced by the check-patterns pre-commit hook from dev-tooling.
 # Every time you correct an agent (or a colleague) for the same thing twice, add a rule here.
 # Write the message as the fix, so an agent can act on it without asking.
 

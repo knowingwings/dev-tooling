@@ -1,4 +1,4 @@
-# Robot lint kit: ROS 2, embedded C/C++, Rust, Python
+# Lint profiles: ROS 2, embedded C/C++, Rust, Python, Typst
 
 Profiles: `ros2/`, `firmware/` (C/C++), `rust/` (host + `rust/embedded/`), `python/` (standalone projects).
 All of them share the `check-patterns`, `check-comments` and `clang-tidy` hooks, and an AGENTS.md
@@ -57,7 +57,7 @@ without asking. Works the same in VS Code, Cursor, the terminal and CI.
 ## Setup (per repo)
 
 ```bash
-~/robot-dev-kit/scripts/adopt.sh ros2 ~/work/my_repo     # or firmware, rust, rust-embedded, python
+~/dev-tooling/scripts/adopt.sh ros2 ~/work/my_repo     # or firmware, rust, rust-embedded, python
 ```
 
 `adopt.sh` copies the profile's per-project files (never overwriting), pins the shared hooks to this kit's
