@@ -7,6 +7,9 @@ check-pr (CI on pull requests): the title is a Conventional Commit (it becomes t
 commit), the body's Evidence section is filled in and one Risk box is ticked, and changes to the
 checks themselves (lint configs, AGENTS.md, CI) aren't mixed with other code changes.
 
+check-automerge (CI): whether a PR may merge itself once its checks pass. Only Low risk, approved
+by someone other than the author, not touching the checks themselves, and not labelled to hold.
+
 Configured by an optional [git] table in patterns.toml.
 """
 
@@ -14,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import os
 import re
 import shutil
@@ -60,10 +64,18 @@ DEFAULTS: dict[str, object] = {
     "title_max_length": 72,
     "require_evidence": True,
     "require_risk": True,
+    "require_requested_by_for_bots": True,
+    "bots_exempt_from_requested_by": ["dependabot[bot]", "renovate[bot]"],
+    "automerge": False,
+    "automerge_risk": ["Low"],
+    "automerge_require_approval": True,
+    "automerge_block_labels": ["do-not-merge", "needs-human", "hold"],
     "protected_paths": [
         ".github/**",
         "AGENTS.md",
         "CLAUDE.md",
+        ".claude/**",
+        "docs/agents/**",
         ".pre-commit-config.yaml",
         "patterns.toml",
         ".clang-tidy",
@@ -89,6 +101,12 @@ class GitConfig:
     require_evidence: bool = True
     require_risk: bool = True
     protected_paths: list[str] = field(default_factory=list)
+    require_requested_by_for_bots: bool = True
+    bots_exempt_from_requested_by: list[str] = field(default_factory=list)
+    automerge: bool = False
+    automerge_risk: list[str] = field(default_factory=list)
+    automerge_require_approval: bool = True
+    automerge_block_labels: list[str] = field(default_factory=list)
 
 
 def load_config(root: Path, path: Path | None = None) -> GitConfig:
@@ -138,9 +156,19 @@ def _section(body: str, heading: str) -> str | None:
     return m.group(1) if m else None
 
 
-def body_problems(body: str, cfg: GitConfig) -> list[str]:
+def body_problems(body: str, cfg: GitConfig, author: str = "") -> list[str]:
     clean = re.sub(r"<!--.*?-->", "", body or "", flags=re.S)
     problems: list[str] = []
+    is_agent = author.endswith("[bot]") and author not in cfg.bots_exempt_from_requested_by
+    if (
+        cfg.require_requested_by_for_bots
+        and is_agent
+        and not re.search(r"Requested-by: @\w", clean)
+    ):
+        problems.append(
+            f"This PR was opened by {author}, so add 'Requested-by: @<person>' to the body: the "
+            "person who asked for the work, so ownership stays visible."
+        )
     if cfg.require_evidence:
         evidence = _section(clean, "Evidence")
         if evidence is None or not re.search(r"\w", evidence):
@@ -159,6 +187,57 @@ def body_problems(body: str, cfg: GitConfig) -> list[str]:
                 "review the PR needs."
             )
     return problems
+
+
+def ticked_risk(body: str) -> list[str]:
+    clean = re.sub(r"<!--.*?-->", "", body or "", flags=re.S)
+    risk = _section(clean, "Risk") or ""
+    return re.findall(r"^\s*[-*] \[[xX]\]\s*\*\*(\w+)\*\*", risk, re.M)
+
+
+def approval_state(reviews: list[dict[str, object]], author: str) -> tuple[bool, list[str]]:
+    """(approved by a non-author, reviewers whose latest review requests changes)."""
+    latest: dict[str, str] = {}
+    for r in reviews:
+        user = str((r.get("user") or {}).get("login", ""))  # type: ignore[union-attr]
+        state = str(r.get("state", ""))
+        if user and user != author and state in {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}:
+            latest[user] = state
+    approved = any(s == "APPROVED" for s in latest.values())
+    blocking = sorted(u for u, s in latest.items() if s == "CHANGES_REQUESTED")
+    return approved, blocking
+
+
+def automerge_reasons(
+    body: str,
+    labels: list[str],
+    changed: list[str],
+    reviews: list[dict[str, object]],
+    author: str,
+    cfg: GitConfig,
+) -> list[str]:
+    """Why this PR must not merge itself; empty means it may."""
+    if not cfg.automerge:
+        return ["auto-merge is off for this repo ([git] automerge = false in patterns.toml)"]
+    reasons: list[str] = []
+    risk = ticked_risk(body)
+    if len(risk) != 1 or risk[0] not in cfg.automerge_risk:
+        shown = risk[0] if len(risk) == 1 else "not set"
+        reasons.append(f"risk is {shown}; only {', '.join(cfg.automerge_risk)} merges itself")
+    held = sorted(set(labels) & set(cfg.automerge_block_labels))
+    if held:
+        reasons.append(f"labelled {', '.join(held)}")
+    touched = [p for p in changed if any(fnmatch.fnmatch(p, g) for g in cfg.protected_paths)]
+    if touched:
+        reasons.append(
+            f"changes the checks themselves ({', '.join(touched[:3])}): a human reviews those"
+        )
+    approved, blocking = approval_state(reviews, author)
+    if blocking:
+        reasons.append(f"changes requested by {', '.join(blocking)}")
+    elif cfg.automerge_require_approval and not approved:
+        reasons.append("no approval yet from anyone other than the author")
+    return reasons
 
 
 def mixed_change_problem(changed: list[str], cfg: GitConfig) -> str | None:
@@ -232,7 +311,7 @@ def main_pr() -> int:
         problems.append(("branch-name", p))
     if p := title_problem(args.title, cfg):
         problems.append(("pr-title", p))
-    problems += [("pr-body", p) for p in body_problems(args.body, cfg)]
+    problems += [("pr-body", p) for p in body_problems(args.body, cfg, args.author)]
     if args.base:
         changed = _git("diff", "--name-only", f"origin/{args.base}...HEAD", cwd=root).splitlines()
         if p := mixed_change_problem(changed, cfg):
@@ -241,6 +320,33 @@ def main_pr() -> int:
     for rule, msg in problems:
         sys.stdout.write(f"[{rule}] {msg}\n")
     return 1 if problems else 0
+
+
+def main_automerge() -> int:
+    ap = argparse.ArgumentParser(description="Decide whether a PR may merge itself once green.")
+    ap.add_argument("--config", type=Path, default=None)
+    args = ap.parse_args()
+    root = Path.cwd()
+    cfg = load_config(root, args.config)
+    base = os.environ.get("PR_BASE_REF", "")
+    changed = (
+        _git("diff", "--name-only", f"origin/{base}...HEAD", cwd=root).splitlines() if base else []
+    )
+    labels = [x for x in os.environ.get("PR_LABELS", "").split(",") if x]
+    reviews = json.loads(os.environ.get("PR_REVIEWS_JSON") or "[]")
+    reasons = automerge_reasons(
+        os.environ.get("PR_BODY", ""),
+        labels,
+        changed,
+        reviews,
+        os.environ.get("PR_AUTHOR", ""),
+        cfg,
+    )
+    if reasons:
+        sys.stdout.write("not eligible for auto-merge:\n" + "".join(f"  - {r}\n" for r in reasons))
+        return 1
+    sys.stdout.write("eligible for auto-merge: merges when every required check passes\n")
+    return 0
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 ## ROS 2 (this repo)
 
 ### Checks to run
-1. `pre-commit run --files <files you changed>`
-2. `colcon build --packages-up-to <pkg>` (warnings are errors)
-3. `pre-commit run clang-tidy --hook-stage pre-push --files <changed .cpp files>`
-4. `colcon test --packages-select <pkg> && colcon test-result --verbose`
+- `./check` runs every check (hooks, build, clang-tidy, test) and prints one line per step, with the failing lines
+  and a log path when something fails. Paste its summary into the PR's Evidence section.
+- `./check --quick` skips the slow steps while you iterate; run the full `./check` before you say
+  you're done. `./check --list` shows exactly what runs.
 
 ### Conventions
 - Timers and timestamps use the node clock (`create_timer`, `now()`), so sim time and bag replay work.

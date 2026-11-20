@@ -29,8 +29,36 @@ exclude = ["target/**", "tests/**", "**/tests/**", "benches/**", "examples/**"]
 # Defaults shown; uncomment to change. Trunk-based by default: add "develop" to protected_branches
 # to keep an integration branch.
 [git]
+# Let Low-risk, approved PRs merge themselves when green (.github/workflows/auto-merge.yml).
+# Needs branch protection with required status checks on main; Medium/High always wait for a person.
+automerge = true
 # protected_branches = ["main", "master"]
 # branch_types = ["feat", "feature", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore", "revert", "hotfix", "release"]
 # agent_prefixes = ["claude", "cursor", "codex", "copilot", "agent", "dependabot", "renovate"]
 # require_evidence = true
 # require_risk = true
+
+# ---- dev-check: ./check runs these in order and prints one line each ------------------------------
+[[check.step]]
+name = "hooks"
+run = "pre-commit run --files {changed}"
+
+[[check.step]]
+name = "fmt"
+run = "cargo fmt --all --check"
+needs = ["cargo"]
+errors = '^Diff in'
+
+[[check.step]]
+name = "clippy"
+run = "cargo clippy --workspace --all-targets --quiet -- -D warnings"
+needs = ["cargo"]
+errors = '^(error|warning)|^\s+--> '
+
+[[check.step]]
+name = "test"
+run = "cargo test --workspace --quiet"
+needs = ["cargo"]
+slow = true
+summary = 'test result: (\w+\. \d+ passed; \d+ failed)'
+errors = '(panicked|FAILED|^error)'

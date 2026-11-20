@@ -33,6 +33,11 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   check "CODEOWNERS owner filled in"         'grep -q "^/AGENTS.md *@someone$" "$R/.github/CODEOWNERS"'
   check "pr-checks pinned to kit version"    'grep -q "KIT_REV: $EXPECTED_REV " "$R/.github/workflows/pr-checks.yml"'
   check "feature map copied"                 '[[ -f "$R/docs/FEATURE_MAP.md" ]]'
+  check "role docs copied"                   '[[ -f "$R/docs/agents/reviewer.md" && -f "$R/docs/agents/builder.md" ]]'
+  check "Claude subagents generated"         'head -2 "$R/.claude/agents/reviewer.md" | grep -qx "name: reviewer"'
+  check "reviewer can't edit files"          'grep -qx "tools: Read, Grep, Glob, Bash" "$R/.claude/agents/reviewer.md"'
+  check "./check wrapper pinned"             'grep -q "rev=\"$EXPECTED_REV\"" "$R/check" && [[ -x "$R/check" ]]'
+  check ".dev-check/ ignored"                'grep -qx ".dev-check/" "$R/.gitignore"'
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'
   # shellcheck disable=SC2034  # used inside check()'s eval
   out2="$("$KIT/scripts/adopt.sh" "$profile" "$R" 2>&1)"

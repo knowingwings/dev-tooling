@@ -14,6 +14,20 @@
 - AGENTS.md gains Verification, "When you're corrected", and Git and pull requests sections.
 - Trunk-based by default; `develop` can be added in `[git] protected_branches`.
 
+**New: one command, agent roles and auto-merge (more of Lauren Tan's approach)**
+- `./check` / `dev-check`: runs every check for the project and prints one line per step, with only
+  the failing lines and a log path. Steps live in `[[check.step]]` in `patterns.toml`; `{changed}`
+  expands to the files changed on the branch. Pinned to the adopted kit version via `uvx`.
+- Agent roles as GitHub Apps you own: architect, builder, reviewer, publisher. Role docs in
+  `docs/agents/`, Claude Code subagents in `.claude/agents/` (reviewer and publisher can't edit files).
+- `as-agent <role> <command>`: runs git/gh as that role's App (short-lived token, bot identity, pushes
+  over HTTPS with the App token) and adds the owner as `Co-authored-by` on every commit.
+- `check-pr` requires `Requested-by: @<person>` on PRs opened by a bot.
+- `auto-merge` workflow: Low risk + approved by someone else + not changing the checks + no hold label
+  → merges when green. Does nothing without branch protection and required checks. Uses the
+  publisher App's token when configured.
+- `.claude/` and `docs/agents/` count as check changes (CODEOWNERS, mixed-PR rule, never auto-merged).
+
 **Fixes**
 - `adopt.sh` exited silently in a repo with no `origin` remote.
 

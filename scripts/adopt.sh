@@ -39,8 +39,31 @@ GEN="$(mktemp -d)"; trap 'rm -rf "$GEN"' EXIT
 make_agents_md() {   # AGENTS.md = shared base + this stack's section
   { cat "$L/agents/base.md"; echo; cat "$L/$1/AGENTS.md"; } > "$GEN/AGENTS.md"
 }
+make_claude_agents() {   # Claude Code subagents: frontmatter + the role's instructions
+  mkdir -p "$GEN/claude-agents"
+  local role tools desc
+  for role in architect builder reviewer publisher; do
+    case "$role" in
+      architect) tools="Read, Grep, Glob, Bash, Edit, Write"
+                 desc="Plans work: turns goals into agent-ready Task issues with acceptance criteria and proof expected, and keeps docs/FEATURE_MAP.md current. Use before building anything non-trivial." ;;
+      builder)   tools=""
+                 desc="Implements one Task issue per branch and opens a pull request with evidence from ./check and the feature map. Use for code changes." ;;
+      reviewer)  tools="Read, Grep, Glob, Bash"
+                 desc="Independent review of a pull request: re-runs ./check and the feature-map checks, judges the evidence and the Risk level, then approves or requests changes. Use after a PR is opened." ;;
+      publisher) tools="Read, Grep, Glob, Bash"
+                 desc="Gets approved work merged safely: follows up stuck PRs, summarises Medium/High risk PRs for the owner, cuts releases, files agent-mistake issues. Use after review." ;;
+    esac
+    {
+      echo "---"; echo "name: $role"; echo "description: $desc"
+      [[ -n "$tools" ]] && echo "tools: $tools"
+      echo "---"; echo; cat "$L/agents/roles/$role.md"
+    } > "$GEN/claude-agents/$role.md"
+  done
+}
+make_claude_agents
 AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md"
-  "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github")
+  "$L/agents/roles|docs/agents" "$GEN/claude-agents|.claude/agents"
+  "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github" "$L/shared/check|check")
 case "$PROFILE" in
   ros2) make_agents_md ros2; PAIRS=(
       "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
@@ -146,7 +169,7 @@ fi
 
 # .gitignore entries
 touch "$REPO/.gitignore"
-for g in "${IGNORE[@]}"; do grep -qxF "$g" "$REPO/.gitignore" || echo "$g" >> "$REPO/.gitignore"; done
+for g in "${IGNORE[@]}" .dev-check/; do grep -qxF "$g" "$REPO/.gitignore" || echo "$g" >> "$REPO/.gitignore"; done
 
 printf 'profile=%s\nkit_version=%s\nadopted=%s\n' "$PROFILE" "$VERSION" "$(date +%F)" > "$REPO/.dev-tooling-version"
 

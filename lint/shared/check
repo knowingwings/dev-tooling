@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# ./check: run every check for this project and print a short summary (dev-check).
+# Uses the dev-tooling version this project adopted, so results match on every machine and in CI.
+#   ./check            everything
+#   ./check --quick    skip slow steps while iterating
+#   ./check --list     show the steps (they live in [[check.step]] in patterns.toml)
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+rev="v0.1.0"   # adopt.sh sets this to the kit version you adopted
+if ! command -v uv >/dev/null; then
+  echo "./check needs uv: https://docs.astral.sh/uv/ (see dev-tooling docs/SETUP.md)" >&2
+  exit 2
+fi
+exec uvx --quiet --from "git+https://github.com/knowingwings/dev-tooling@${rev}" dev-check "$@"

@@ -6,7 +6,10 @@ empty or no Risk box is ticked.
 -->
 
 ## What and why
-<!-- Two or three sentences. Link the issue: "Closes #123". -->
+<!--
+Two or three sentences. Link the issue: "Closes #123".
+Agents: add "Requested-by: @<person>" naming who asked for the work (CI requires it on bot PRs).
+-->
 
 ## Evidence
 <!--

@@ -11,6 +11,8 @@ check-patterns = "dev_tooling.check_patterns:main"
 check-comments = "dev_tooling.check_comments:main"
 check-branch = "dev_tooling.check_git:main_branch"
 check-pr = "dev_tooling.check_git:main_pr"
+dev-check = "dev_tooling.check:main"
+check-automerge = "dev_tooling.check_git:main_automerge"
 
 [build-system]
 requires = ["hatchling"]
@@ -37,3 +39,5 @@ ignore = ["ANN401", "S101"]
 "tests/test_check_comments.py" = ["S603", "S607", "ANN"]
 "src/dev_tooling/check_git.py" = ["S603"]   # runs git with fixed arguments
 "tests/test_check_git.py" = ["S603", "S607", "ANN"]
+"src/dev_tooling/check.py" = ["S603"]   # runs the project's own configured check commands
+"tests/test_check.py" = ["S603", "S607", "ANN"]

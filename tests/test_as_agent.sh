@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # variables below are read inside check()'s eval
+# Offline tests for scripts/as-agent: JWT signing, bot identity, owner co-author trailer, and the
+# push credential setup. Doesn't contact GitHub (DEV_TOOLING_AGENT_TOKEN stands in for the token).
+set -euo pipefail
+KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AS="$KIT/scripts/as-agent"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+fail=0
+check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
+
+export DEV_TOOLING_AGENTS_DIR="$TMP/agents" XDG_CACHE_HOME="$TMP/cache"
+mkdir -p "$DEV_TOOLING_AGENTS_DIR"
+openssl genrsa -out "$DEV_TOOLING_AGENTS_DIR/builder.pem" 2048 2>/dev/null
+openssl rsa -in "$DEV_TOOLING_AGENTS_DIR/builder.pem" -pubout -out "$TMP/builder.pub" 2>/dev/null
+printf 'CLIENT_ID=Iv23.testclient\nBOT_LOGIN="kw-builder[bot]"\nBOT_ID=4242\n' > "$DEV_TOOLING_AGENTS_DIR/builder.env"
+printf 'OWNER_NAME="Knowing Wings"\nOWNER_EMAIL="1+knowingwings@users.noreply.github.com"\n' > "$DEV_TOOLING_AGENTS_DIR/owner.env"
+
+echo "== JWT"
+jwt="$("$AS" jwt builder)"
+IFS=. read -r h p s <<< "$jwt"
+pad() { local x="$1"; while (( ${#x} % 4 )); do x+="="; done; printf '%s' "$x" | tr -- '-_' '+/'; }
+payload="$(pad "$p" | openssl base64 -d -A)"
+check "header is RS256"                    '[[ "$(pad "$h" | openssl base64 -d -A)" == "{\"alg\":\"RS256\",\"typ\":\"JWT\"}" ]]'
+check "issuer is the client id"            'grep -q "\"iss\":\"Iv23.testclient\"" <<< "$payload"'
+check "expires within 10 minutes"          'python3 -c "import json,sys,time; d=json.loads(sys.argv[1]); assert 0 < d[\"exp\"]-time.time() <= 600" "$payload"'
+pad "$s" | openssl base64 -d -A > "$TMP/sig.bin"
+check "signature verifies with public key" 'printf "%s.%s" "$h" "$p" | openssl dgst -sha256 -verify "$TMP/builder.pub" -signature "$TMP/sig.bin" >/dev/null'
+
+echo "== acting as the builder"
+export DEV_TOOLING_AGENT_TOKEN="fake-token-123"
+R="$TMP/repo"; mkdir -p "$R"; cd "$R"; git init -q -b main
+git remote add origin git@github.com:knowingwings/demo.git
+"$AS" builder git commit -q --allow-empty -m "feat: try the builder identity"
+check "author is the bot"                  '[[ "$(git log -1 --format="%an <%ae>")" == "kw-builder[bot] <4242+kw-builder[bot]@users.noreply.github.com>" ]]'
+check "committer is the bot"               '[[ "$(git log -1 --format="%cn")" == "kw-builder[bot]" ]]'
+check "owner is co-author"                 'git log -1 --format=%B | grep -qx "Co-authored-by: Knowing Wings <1+knowingwings@users.noreply.github.com>"'
+check "gh sees the App token"              '[[ "$("$AS" builder sh -c "echo \$GH_TOKEN")" == "fake-token-123" ]]'
+check "ssh remote rewritten to https"      '"$AS" builder git ls-remote --get-url origin | grep -q "^https://github.com/knowingwings/demo"'
+cred="$(printf 'protocol=https\nhost=github.com\n\n' | "$AS" builder git credential fill)"
+check "push credential is the App token"   'grep -qx "password=fake-token-123" <<< "$cred" && grep -qx "username=x-access-token" <<< "$cred"'
+check "whoami"                             '"$AS" whoami builder | grep -q "^kw-builder\[bot\]"'
+unknown_out="$("$AS" nobody true 2>&1 || true)"
+check "unknown role fails clearly"         '! "$AS" nobody true 2>/dev/null && grep -q "no .*nobody.env" <<< "$unknown_out"'
+exit $fail

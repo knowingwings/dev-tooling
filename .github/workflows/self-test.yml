@@ -50,11 +50,14 @@ jobs:
         run: |
           ruff check src tests/*.py
           ruff format --check src tests/*.py
-          shellcheck -S warning scripts/*.sh lint/shared/*.sh tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
+          shellcheck -S warning scripts/*.sh scripts/as-agent lint/shared/*.sh lint/shared/check tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
           PYTHONPATH=src python3 -m dev_tooling.check_comments --all-lines src/dev_tooling/*.py tests/run_tests.py
 
       - name: Checker unit tests
-        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py
+        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py tests/test_check.py
+
+      - name: as-agent (offline)
+        run: bash tests/test_as_agent.sh
 
       - name: Rules fire on the bad fixtures
         run: python3 tests/run_tests.py --strict

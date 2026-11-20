@@ -4,9 +4,11 @@
 - Use `uv run <cmd>` for everything. Add dependencies with `uv add` (or `uv add --dev`), never `pip install`.
 
 ### Checks to run
-1. `uv run ruff check --fix . && uv run ruff format .`
-2. `uv run pyright`
-3. `uv run pytest` (hardware tests are deselected; `pytest -m hardware` touches devices: see Hardware safety)
+- `./check` runs every check (hooks, ruff, pyright, pytest) and prints one line per step, with the failing lines
+  and a log path when something fails. Paste its summary into the PR's Evidence section.
+- `./check --quick` skips the slow steps while you iterate; run the full `./check` before you say
+  you're done. `./check --list` shows exactly what runs.
+- `pytest -m hardware` touches devices and is never part of `./check`: see Hardware safety.
 
 ### Conventions
 - Type hints on every function. Tests that need a device are marked `@pytest.mark.hardware`.
