@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+**New: GitHub conventions, enforced (from Lauren Tan's evidence-over-diffs approach)**
+- Every profile gets an evidence-first PR template (Evidence, Risk / blast radius, suppressions and
+  rules learned), issue forms (Task with acceptance criteria and proof expected, Bug, Agent mistake →
+  check), CODEOWNERS for the files that define the checks, and a `pr-checks` workflow.
+- `check-branch` hook (pre-push): `<type>/<description>` branch names (agent prefixes allowed), no
+  direct pushes to `main`.
+- `check-pr` (CI): Conventional Commit PR titles, Evidence filled in, exactly one Risk box, and changes
+  to the checks not mixed with other code.
+- `docs/FEATURE_MAP.md` template: every behaviour and how to verify it, for agents to produce evidence.
+- AGENTS.md gains Verification, "When you're corrected", and Git and pull requests sections.
+- Trunk-based by default; `develop` can be added in `[git] protected_branches`.
+
+**Fixes**
+- `adopt.sh` exited silently in a repo with no `origin` remote.
+
 ## v0.1.0 (2026-11-20)
 
 First version as a repo (previously two zips: dev-tooling, vscode-setup).

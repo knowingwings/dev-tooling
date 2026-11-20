@@ -8,12 +8,27 @@ Shared rules come first; the section for this repo's stack follows.
   message: the command, pass/fail, and any numbers it reports. Evidence first, then the diff.
 - If a check fails and you can't fix it, say so plainly. Don't claim it passed.
 
+## Verification
+Reviewers judge the evidence, not the diff, so most of your effort goes into proving the change works.
+- `docs/FEATURE_MAP.md` lists every behaviour and how to verify it. Run the checks for every feature
+  your change touches, and add a row when you add a feature.
+- Prefer evidence a machine produced: test output, a sim launch or bag replay with what you observed,
+  a plot, a screenshot or recording. For behaviour changes, show before and after.
+- If something can only be verified on real hardware, say exactly what a person needs to run and
+  mark the PR **High** risk (see Hardware safety).
+
 ## Lint and checks
 - Every lint message says how to fix the problem. Fix the root cause.
 - Never edit lint, compiler-warning or type-checker config to get a check passing.
 - A suppression (`lint-allow(<rule>): <reason>`, `NOLINT`, `#[expect(.., reason)]`, `noqa`) is only for
   cases where the rule genuinely doesn't apply. Give a reason a reviewer would accept, and list every
   suppression you added in your summary.
+
+## When you're corrected
+A correction should become a check, not another line here. If you're told you did something wrong,
+propose the deterministic fix: a lint rule, a `patterns.toml` rule, a type or API that makes the
+mistake impossible, or a test. If it can't be done in this change, open an issue with the
+**Agent mistake → check** template.
 
 ## Comments
 New comments are blocked by the `check-comments` hook, because they go stale and get used to justify
@@ -32,5 +47,15 @@ Never flash a board, change option bytes or fuses, open a serial/CAN port to a d
 that commands real actuators (motors, arms, grippers), unless the person you're working for asks in
 this session. Verify with simulation, bag replay, host tests or fakes instead.
 
-## Git
-- Work on a branch. Don't commit to main, force-push, or push without being asked.
+## Git and pull requests
+These are checked by hooks and CI, so getting them right first time saves a round trip.
+- **Branch:** `<type>/<short-description>` in lowercase-with-dashes, optionally with the issue number:
+  `feat/motor-current-limit`, `fix/123-imu-timestamp`. Types: feat, fix, docs, refactor, perf, test,
+  build, ci, chore, revert. Never commit or push to `main`; never force-push a shared branch.
+- **Commits:** small and focused, with a message that explains why. Don't push without being asked.
+- **PR title:** a Conventional Commit, since it becomes the squash-merge commit:
+  `fix(imu): use sensor timestamp for fusion`. Add `!` after the type for breaking changes.
+- **PR body:** fill in the template. **Evidence** must show it works, and exactly one **Risk** box is
+  ticked. List every suppression you added.
+- **Changes to the checks themselves** (lint configs, `patterns.toml`, `AGENTS.md`, `.github/`, hooks)
+  go in their own PR, never mixed with feature work. CI rejects mixed PRs.

@@ -1,0 +1,9 @@
+# Settings for dev-tooling hooks in a Typst documents repo.
+
+# ---- Git and PR conventions (check-branch hook, pr-checks workflow) -----------------------------
+# Defaults shown; uncomment to change. For a docs-only repo you may not want evidence and risk on
+# every PR: set them to false.
+[git]
+# protected_branches = ["main", "master"]
+# require_evidence = true
+# require_risk = true

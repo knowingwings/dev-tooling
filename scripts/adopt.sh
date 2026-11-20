@@ -39,7 +39,8 @@ GEN="$(mktemp -d)"; trap 'rm -rf "$GEN"' EXIT
 make_agents_md() {   # AGENTS.md = shared base + this stack's section
   { cat "$L/agents/base.md"; echo; cat "$L/$1/AGENTS.md"; } > "$GEN/AGENTS.md"
 }
-AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md")
+AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md"
+  "$L/agents/FEATURE_MAP.md|docs/FEATURE_MAP.md" "$L/github/.github|.github")
 case "$PROFILE" in
   ros2) make_agents_md ros2; PAIRS=(
       "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
@@ -81,7 +82,8 @@ Mark tests that need a device with @pytest.mark.hardware (5.3).
 Run: uv sync" ;;
   typst) make_agents_md typst; PAIRS=(
       "$L/typst/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
-      "$L/typst/.typst-version|.typst-version" "$L/typst/.typst-entries|.typst-entries" "$V/typst/.vscode|.vscode")
+      "$L/typst/.typst-version|.typst-version" "$L/typst/.typst-entries|.typst-entries" "$V/typst/.vscode|.vscode"
+      "$L/typst/patterns.toml|patterns.toml")
     IGNORE=(build/)
     TODO="List your entry documents in .typst-entries (it defaults to main.typ).
 Commit the fonts your documents use to fonts/ (system fonts are ignored so PDFs match on every machine).
@@ -124,9 +126,22 @@ done
 
 [[ "$MODE" != copy ]] && exit 0
 
-# Pin the shared hooks to this kit version (only in a config we just copied).
-if printf '%s\n' "${copied[@]}" | grep -qx '.pre-commit-config.yaml'; then
-  sed -i.bak "s|^\(    rev: \)v0\.1\.0\(.*adopt.sh.*\)$|\1${REV}\2|" "$REPO/.pre-commit-config.yaml" && rm -f "$REPO/.pre-commit-config.yaml.bak"
+# Pin the kit version wherever a copied file says "adopt.sh sets this" (hooks, pr-checks workflow).
+for rel in "${copied[@]}"; do
+  f="$REPO/$rel"
+  [[ -f "$f" ]] && grep -q "adopt.sh sets this" "$f" || continue
+  sed -i.bak "/adopt.sh sets this/ s/v0\.1\.0/${REV}/" "$f" && rm -f "$f.bak"
+done
+
+# CODEOWNERS: fill in the GitHub owner from the origin remote.
+owner="$(git -C "$REPO" remote get-url origin 2>/dev/null | sed -nE 's#.*github\.com[:/]+([^/]+)/.*#\1#p' || true)"
+if printf '%s\n' "${copied[@]}" | grep -qx '.github/CODEOWNERS'; then
+  if [[ -n "$owner" ]]; then
+    sed -i.bak "s/@OWNER/@${owner}/" "$REPO/.github/CODEOWNERS" && rm -f "$REPO/.github/CODEOWNERS.bak"
+  else
+    TODO+="
+Replace @OWNER in .github/CODEOWNERS with your GitHub username (no GitHub origin remote found)."
+  fi
 fi
 
 # .gitignore entries
@@ -155,6 +170,9 @@ if [[ -f "$REPO/CLAUDE.md" ]] && ! grep -q '^@AGENTS.md' "$REPO/CLAUDE.md"; then
   echo "Your existing CLAUDE.md was kept. Add this as its first line so Claude Code reads AGENTS.md:"
   echo "  @AGENTS.md"
 fi
+echo
+echo "On GitHub (human, once per repo): Settings > Branches > add a rule for main:"
+echo "  require a pull request, require the pr-checks and CI status checks, require review from Code Owners."
 echo
 echo "Still to do:"
 while IFS= read -r line; do echo "  - $line"; done <<< "$TODO"

@@ -23,12 +23,18 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 | Shared tools (pattern checker, clang-tidy runner) | `src/`, `lint/shared/` | pre-commit hooks pinned by tag: `rev: v0.1.0` in each project |
 | Per-project rules (`patterns.toml`, `.clang-tidy`, `clippy.toml`...) | `lint/<profile>/` | copied once by `adopt.sh`, then owned and edited by the project |
 | Agent instructions: `AGENTS.md` (shared base + stack section), `CLAUDE.md` = `@AGENTS.md` | `lint/agents/`, `lint/<profile>/AGENTS.md` | generated once by `adopt.sh`, then owned by the project |
+| GitHub conventions: PR and issue templates, CODEOWNERS, `pr-checks` workflow, feature map | `lint/github/`, `lint/agents/FEATURE_MAP.md` | copied once by `adopt.sh` for every profile |
 | Editor config (`.vscode/`, ROS 2 dev container) | `vscode/<profile>/` | copied once by `adopt.sh` |
 | Your VS Code settings and extensions | `vscode/user/` | `install-machine.sh` symlinks settings, so `git pull` updates every machine |
 | Which kit version a project started from | `.dev-tooling-version` in the project | written by `adopt.sh` |
 
 **Updating a project to a newer kit:** bump `rev:` in its `.pre-commit-config.yaml`, then run
 `adopt.sh <profile> <repo> --diff` to see what changed in the copied files and merge what you want.
+
+## Working on the kit
+
+The kit follows its own conventions: branch `<type>/<description>`, Conventional Commit PR titles,
+an Evidence section in every PR. CI checks all of it.
 
 ## Changing the kit
 
@@ -41,9 +47,9 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 ## Layout
 
 ```
-lint/        agents/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ shared/
+lint/        agents/ github/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ shared/
 vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/ typst/
-src/         dev_tooling/check_patterns.py   (installed by pre-commit as the check-patterns hook)
+src/         dev_tooling/  check_patterns, check_comments, check_git (the hooks and CI checks)
 scripts/     install-machine.sh  adopt.sh
 tests/       fixtures/ expected/ run_tests.py test_adopt.sh
 docs/        SETUP.md

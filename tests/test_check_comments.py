@@ -1,4 +1,7 @@
-"""Edge cases for the comment tokenizer and policy: python3 -m unittest tests/test_check_comments.py"""
+"""Comment tokenizer and policy edge cases.
+
+Run: python3 -m unittest tests/test_check_comments.py
+"""
 
 from __future__ import annotations
 
@@ -10,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from dev_tooling.check_comments import (  # noqa: E402
+from dev_tooling.check_comments import (
     DEFAULTS,
     Config,
     c_like_comments,
@@ -55,7 +58,9 @@ class Tokenizer(unittest.TestCase):
         self.assertEqual(texts(src, rust=True), ["// real"])
 
     def test_rust_char_and_byte(self) -> None:
-        self.assertEqual(texts("let c = '\\u{1F600}'; let q = b'\"'; // real", rust=True), ["// real"])
+        self.assertEqual(
+            texts("let c = '\\u{1F600}'; let q = b'\"'; // real", rust=True), ["// real"]
+        )
 
     def test_rust_raw_string(self) -> None:
         self.assertEqual(texts('let s = r#"// "not" a comment"#; // real', rust=True), ["// real"])
@@ -94,12 +99,17 @@ class Policy(unittest.TestCase):
         self.assertEqual(flagged("// REF(RM0090)\n"), ["no-comments-ref-needs-source"])
 
     def test_suppressions_allowed(self) -> None:
-        src = "int a; // NOLINT(bugprone-x) vendor macro\n// lint-allow(fw-no-double): host-only tool\n"
+        src = (
+            "int a; // NOLINT(bugprone-x) vendor macro\n"
+            "// lint-allow(fw-no-double): host-only tool\n"
+        )
         self.assertEqual(flagged(src), [])
         self.assertEqual(flagged("import os  # noqa: S605 fixed command\n", py=True), [])
 
     def test_licence_header_allowed(self) -> None:
-        self.assertEqual(flagged("// SPDX-License-Identifier: MIT\n/* Copyright 2026 Acme */\n"), [])
+        self.assertEqual(
+            flagged("// SPDX-License-Identifier: MIT\n/* Copyright 2026 Acme */\n"), []
+        )
 
 
 class NewLinesOnly(unittest.TestCase):
@@ -117,7 +127,10 @@ class NewLinesOnly(unittest.TestCase):
             src = Path(__file__).resolve().parent.parent / "src"
             p = subprocess.run(
                 [sys.executable, "-m", "dev_tooling.check_comments", "m.c"],
-                cwd=root, capture_output=True, text=True, check=False,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
                 env={"PYTHONPATH": str(src), "PATH": "/usr/bin:/bin:/usr/local/bin"},
             )
             self.assertEqual(p.returncode, 1)

@@ -1,0 +1,20 @@
+# Changes to the checks, agent instructions and CI need the owner's review: turn on
+# Settings > Branches > main > "Require review from Code Owners". This stops anyone, agents included,
+# loosening the checks their own work is judged by. adopt.sh fills in the owner.
+/.github/                   @knowingwings
+/AGENTS.md                  @knowingwings
+/CLAUDE.md                  @knowingwings
+/.pre-commit-config.yaml    @knowingwings
+/patterns.toml              @knowingwings
+/.clang-tidy                @knowingwings
+/.clang-format              @knowingwings
+/.clangd                    @knowingwings
+/ruff.toml                  @knowingwings
+/clippy.toml                @knowingwings
+/rustfmt.toml               @knowingwings
+/rust-toolchain.toml        @knowingwings
+/cmake/warnings.cmake       @knowingwings
+/.typst-version             @knowingwings
+/lint/                      @knowingwings
+/src/                       @knowingwings
+/tests/expected/            @knowingwings

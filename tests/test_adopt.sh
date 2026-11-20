@@ -10,6 +10,7 @@ check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi
 for profile in ros2 firmware rust rust-embedded python typst; do
   echo "== $profile"
   R="$TMP/$profile"; mkdir -p "$R"; git -C "$R" init -q
+  git -C "$R" remote add origin git@github.com:someone/$profile-repo.git
   echo "# my own notes" > "$R/CLAUDE.md"                 # pre-existing file must survive
   # shellcheck disable=SC2034  # used inside check()'s eval
   out="$("$KIT/scripts/adopt.sh" "$profile" "$R" 2>&1)"
@@ -25,6 +26,11 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   if grep -q "dev-tooling" "$R/.pre-commit-config.yaml"; then
     check "hook rev pinned to kit version"   '! grep -q "rev: v0.1.0   # adopt" "$R/.pre-commit-config.yaml" || [[ "$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null)" == v0.1.0 ]]'
   fi
+  check "PR template copied"                 '[[ -f "$R/.github/pull_request_template.md" ]]'
+  check "issue templates copied"             '[[ -f "$R/.github/ISSUE_TEMPLATE/agent-mistake.yml" && -f "$R/.github/ISSUE_TEMPLATE/task.yml" ]]'
+  check "CODEOWNERS owner filled in"         'grep -q "^/AGENTS.md *@someone$" "$R/.github/CODEOWNERS"'
+  check "pr-checks pinned to kit version"    'grep -q "KIT_REV: $(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || echo v0.1.0) " "$R/.github/workflows/pr-checks.yml"'
+  check "feature map copied"                 '[[ -f "$R/docs/FEATURE_MAP.md" ]]'
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'
   # shellcheck disable=SC2034  # used inside check()'s eval
   out2="$("$KIT/scripts/adopt.sh" "$profile" "$R" 2>&1)"

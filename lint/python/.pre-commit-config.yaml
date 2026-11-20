@@ -23,6 +23,7 @@ repos:
     rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
     hooks:
       - id: check-comments
+      - id: check-branch
 
   - repo: local
     hooks:

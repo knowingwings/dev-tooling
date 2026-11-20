@@ -7,6 +7,7 @@ name: self-test
 on:
   push:
   pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 env:
   RUFF_VERSION: "0.16.9"
@@ -47,13 +48,13 @@ jobs:
 
       - name: Kit's own code passes its own rules
         run: |
-          ruff check src tests/run_tests.py
-          ruff format --check src tests/run_tests.py
+          ruff check src tests/*.py
+          ruff format --check src tests/*.py
           shellcheck -S warning scripts/*.sh lint/shared/*.sh tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
           PYTHONPATH=src python3 -m dev_tooling.check_comments --all-lines src/dev_tooling/*.py tests/run_tests.py
 
-      - name: Comment checker unit tests
-        run: python3 -m unittest -v tests/test_check_comments.py
+      - name: Checker unit tests
+        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py
 
       - name: Rules fire on the bad fixtures
         run: python3 tests/run_tests.py --strict
@@ -62,3 +63,18 @@ jobs:
         run: |
           git config --global user.email ci@example.com && git config --global user.name ci
           bash tests/test_adopt.sh
+
+  # The kit follows its own PR conventions: same check projects get from lint/github/.
+  pr-conventions:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check title, body, branch and changed files
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+        run: PYTHONPATH=src python3 -c "import sys; from dev_tooling.check_git import main_pr; sys.exit(main_pr())"
