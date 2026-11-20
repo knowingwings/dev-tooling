@@ -1,0 +1,87 @@
+// User settings: paste into "Preferences: Open User Settings (JSON)".
+// These sync between work and home via Settings Sync. Repo-specific settings live in each repo's .vscode/.
+{
+  // ---- Editing --------------------------------------------------------------
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "editor.stickyScroll.enabled": true,          // keeps the enclosing function/class visible while scrolling
+  "editor.inlayHints.enabled": "onUnlessPressed", // shows inferred types & parameter names (hold Ctrl+Alt to hide)
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  // ---- Reviewing agent changes ----------------------------------------------
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.renderSideBySide": true,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "scm.diffDecorations": "all",
+  "workbench.editor.enablePreview": false,
+
+  // ---- Lint feedback inline (Error Lens) ------------------------------------
+  "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+  "errorLens.followCursor": "allLines",
+
+  // ---- C / C++: clangd for intelligence, cpptools kept only for debugging ----
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",                 // live clang-tidy using the repo's .clang-tidy
+    "--header-insertion=never",
+    "--completion-style=detailed",
+    "--pch-storage=memory"
+  ],
+  "[c]":   { "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" },
+  "[cpp]": { "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" },
+
+  // ---- Python: ruff for lint/format, Pylance for types -----------------------
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.inlayHints.functionReturnTypes": true,
+
+  // ---- Rust: clippy (with the repo's clippy.toml) runs on every save -----------
+  "[rust]": { "editor.defaultFormatter": "rust-lang.rust-analyzer" },
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.inlayHints.chainingHints.enable": true,
+  "rust-analyzer.inlayHints.closureReturnTypeHints.enable": "with_block",
+  "rust-analyzer.lens.references.adt.enable": true,      // "N references" above structs/enums
+  "rust-analyzer.lens.references.method.enable": true,
+  "[toml]": { "editor.defaultFormatter": "tamasfe.even-better-toml" },
+
+  // ---- Robotics file types --------------------------------------------------
+  "files.associations": {
+    "*.urdf": "xml",
+    "*.xacro": "xml",
+    "*.sdf": "xml",
+    "*.launch": "xml",
+    "*.ld": "linkerscript",
+    "*.svd": "xml"
+  },
+
+  // ---- Don't index build outputs (big speed win in colcon workspaces) -------
+  "files.watcherExclude": {
+    "**/build/**": true, "**/install/**": true, "**/log/**": true, "**/.cache/**": true,
+    "**/target/**": true, "**/.venv/**": true
+  },
+  "search.exclude": {
+    "**/build": true, "**/install": true, "**/log": true, "**/.cache": true,
+    "**/target": true, "**/.venv": true
+  },
+
+  // ---- Terminal -------------------------------------------------------------
+  "terminal.integrated.scrollback": 20000,
+  "terminal.integrated.enablePersistentSessions": true,
+
+  // ---- Telemetry (work machines often require this off) ---------------------
+  "telemetry.telemetryLevel": "off"
+}

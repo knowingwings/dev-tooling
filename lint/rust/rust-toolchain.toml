@@ -1,0 +1,7 @@
+# Pins the compiler so work, home and CI build identically (rustup reads this automatically).
+# Bump the version deliberately in its own commit, then fix any new clippy lints it brings.
+[toolchain]
+channel = "1.97.0"
+components = ["rustfmt", "clippy", "rust-src", "llvm-tools"]
+# Embedded: add your MCU target(s), e.g. Cortex-M4F/M7:
+# targets = ["thumbv7em-none-eabihf"]

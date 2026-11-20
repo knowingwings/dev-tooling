@@ -1,0 +1,24 @@
+# Hooks other repos use by referencing this repo in their .pre-commit-config.yaml:
+#
+#   - repo: https://github.com/knowingwings/robot-dev-kit
+#     rev: v0.1.0
+#     hooks:
+#       - id: check-patterns
+#       - id: clang-tidy
+#
+# Each project keeps its own patterns.toml / .clang-tidy: the rules are per project, the tools are shared.
+
+- id: check-patterns
+  name: project pattern rules (patterns.toml)
+  description: Path-scoped banned patterns with fix-it messages, configured by patterns.toml in the project root.
+  entry: check-patterns
+  language: python
+  types_or: [c, c++, python, rust]
+
+- id: clang-tidy
+  name: clang-tidy (changed files)
+  description: Runs clang-tidy using the project's compile_commands.json files. Needs clang-tidy 20+ on PATH.
+  entry: lint/shared/clang_tidy.sh
+  language: script
+  types_or: [c, c++]
+  stages: [pre-push]

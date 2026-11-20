@@ -1,0 +1,13 @@
+clang-tidy:bugprone-unsafe-functions 1
+clang-tidy:misc-const-correctness 5
+clang-tidy:misc-use-internal-linkage 3
+patterns:ros-no-bare-qos-depth 2
+patterns:ros-no-spin-in-node 2
+patterns:ros-no-stdout 1
+patterns:ros-no-system-clock 1
+patterns:ros-no-wall-timer 2
+patterns:ros-no-wall-timer-no-reason 1
+ruff:ANN001 1
+ruff:ANN201 1
+ruff:T201 1
+ruff:TID251 2

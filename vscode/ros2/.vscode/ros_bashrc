@@ -1,0 +1,23 @@
+# Init file for the "ros2" terminal profile (see settings.json).
+# Every integrated terminal, including one you run `claude` in, gets ROS sourced,
+# so you and the agent can use ros2 / colcon without remembering to source anything.
+# Keep DDS traffic on this machine unless you're talking to a robot (export SUBNET to reach the LAN).
+# Set before ROS is sourced: newer distros' ros_environment set SUBNET if this is still unset.
+export ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}"
+
+[ -f ~/.bashrc ] && source ~/.bashrc
+
+ROS_DISTRO="${ROS_DISTRO:-jazzy}"
+if [ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]; then
+  source "/opt/ros/${ROS_DISTRO}/setup.bash"
+else
+  echo "ros_bashrc: /opt/ros/${ROS_DISTRO} not found (set ROS_DISTRO or use the dev container)" >&2
+fi
+
+# Overlay this workspace if it has been built.
+WS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[ -f "${WS_ROOT}/install/setup.bash" ] && source "${WS_ROOT}/install/setup.bash"
+
+export RCUTILS_COLORIZED_OUTPUT=1
+
+PS1="(ros2 ${ROS_DISTRO}) ${PS1}"

@@ -1,0 +1,16 @@
+// VS Code prompts anyone opening this repo to install these.
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "llvm-vs-code-extensions.vscode-clangd",
+    "ms-vscode.cpptools",
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "usernamehw.errorlens",
+    "redhat.vscode-xml",
+    "redhat.vscode-yaml",
+    "Ranch-Hand-Robotics.rde-pack"
+  ],
+  "unwantedRecommendations": ["ms-iot.vscode-ros"]
+}

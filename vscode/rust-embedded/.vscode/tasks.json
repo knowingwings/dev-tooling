@@ -1,0 +1,46 @@
+// Build only. Flashing happens through the probe-rs debug configs (F5), so it's always a deliberate action.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "rust: build firmware (debug)",
+      "type": "cargo",
+      "command": "build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: build firmware (release)",
+      "type": "cargo",
+      "command": "build",
+      "args": ["--release"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: size (release)",
+      "type": "shell",
+      "command": "cargo size --release -- -A | grep -E '^(\\.text|\\.data|\\.bss|\\.rodata|section)'",
+      "detail": "needs: cargo install cargo-binutils && rustup component add llvm-tools",
+      "problemMatcher": []
+    },
+    {
+      "label": "rust: clippy",
+      "type": "cargo",
+      "command": "clippy",
+      "args": ["--", "-D", "warnings"],
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: host tests (logic crate)",
+      "type": "shell",
+      "command": "cargo test --package ${input:package} --target x86_64-unknown-linux-gnu",
+      "detail": "Keep control logic in a no_std crate with no HAL dependency so it can be tested on the laptop",
+      "group": "test",
+      "problemMatcher": ["$rustc"]
+    }
+  ],
+  "inputs": [
+    { "id": "package", "type": "promptString", "description": "Logic crate name" }
+  ]
+}

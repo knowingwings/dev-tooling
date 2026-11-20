@@ -1,0 +1,30 @@
+// Workspace settings for a colcon workspace (open the workspace root: the folder containing src/).
+// Commit this folder; it's what makes work and home behave the same.
+{
+  // Every new terminal sources ROS + this workspace's install/ overlay.
+  "terminal.integrated.profiles.linux": {
+    "ros2": { "path": "bash", "args": ["--init-file", "${workspaceFolder}/.vscode/ros_bashrc"] }
+  },
+  "terminal.integrated.defaultProfile.linux": "ros2",
+
+  // clangd reads the merged database the "ros2: build" task writes (colcon makes one per package).
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=never",
+    "--completion-style=detailed",
+    "--compile-commands-dir=${workspaceFolder}/build"
+  ],
+
+  // Python: let Pylance see ROS and your built packages. Change jazzy/python3.12 for other distros
+  // (Humble: humble / python3.10).
+  "python.analysis.extraPaths": [
+    "/opt/ros/jazzy/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/local/lib/python3.12/dist-packages",
+    "${workspaceFolder}/install"
+  ],
+  "python.defaultInterpreterPath": "/usr/bin/python3",
+  "ruff.configuration": "${workspaceFolder}/ruff.toml",
+
+  "files.exclude": { "**/__pycache__": true, "build": true, "install": true, "log": true }
+}

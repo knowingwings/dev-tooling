@@ -1,0 +1,19 @@
+# Host Rust (ROS 2 nodes via rclrs/r2r, tools, services). Put at the workspace root.
+# disallowed-* entries are clippy's version of the banned-function lists: the reason is shown
+# in the error, so write it as the fix.
+
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-print-in-tests = true
+
+disallowed-methods = [
+  { path = "std::thread::sleep", reason = "blocks the thread: in async/ROS callbacks this stalls everything else. Use tokio::time::sleep / a timer, or schedule the work." },
+  { path = "std::time::SystemTime::now", reason = "wall clock jumps (NTP) and ignores sim time. Use std::time::Instant for durations, or the node clock for message timestamps." },
+  { path = "std::process::exit", reason = "skips destructors, so drivers never get to disable motors. Return an error from main() instead." },
+  { path = "std::mem::forget", reason = "leaks resources and skips Drop (e.g. a motor-disable guard). Restructure ownership instead." },
+]
+
+disallowed-types = [
+  { path = "std::sync::Mutex", reason = "poisoning makes every lock() a Result that agents tend to unwrap(). Use parking_lot::Mutex (or tokio::sync::Mutex across .await)." },
+]

@@ -1,0 +1,33 @@
+// CodeLLDB builds with cargo, then debugs. rust-analyzer also puts "Debug" lenses above main() and each #[test].
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug binary",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": { "args": ["build", "--bin=${input:bin}"] },
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": { "RUST_BACKTRACE": "1", "RUST_LOG": "debug" }
+    },
+    {
+      "name": "Debug tests in crate",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": { "args": ["test", "--no-run", "--package=${input:package}"] },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Attach to running process",
+      "type": "lldb",
+      "request": "attach",
+      "pid": "${command:pickMyProcess}"
+    }
+  ],
+  "inputs": [
+    { "id": "bin", "type": "promptString", "description": "Binary name" },
+    { "id": "package", "type": "promptString", "description": "Package (crate) name" }
+  ]
+}

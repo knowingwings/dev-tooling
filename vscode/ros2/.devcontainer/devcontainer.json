@@ -1,0 +1,37 @@
+// "Dev Containers: Reopen in Container". Identical ROS environment on any machine with Docker.
+// Linux hosts get full DDS networking to robots on the LAN. On macOS/Windows, --network=host
+// behaves differently: fine for sim and bags, but talk to real robots from a Linux machine or via SSH.
+{
+  "name": "ROS 2 Jazzy",
+  "build": { "dockerfile": "Dockerfile" },
+  "remoteUser": "ubuntu",
+  "updateRemoteUserUID": true,
+  "workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
+  "workspaceFolder": "/ws",
+  "runArgs": ["--network=host", "--ipc=host"],
+  "containerEnv": {
+    "ROS_DISTRO": "jazzy",
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp"
+  },
+  "mounts": [
+    // Keep Claude Code's login and history across container rebuilds.
+    "source=claude-code-config,target=/home/ubuntu/.claude,type=volume"
+  ],
+  "postCreateCommand": "sudo rosdep init 2>/dev/null || true; rosdep update && rosdep install --from-paths src --ignore-src -y && pre-commit install --install-hooks || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cpptools",
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "usernamehw.errorlens",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "Ranch-Hand-Robotics.rde-pack"
+      ]
+    }
+  }
+}

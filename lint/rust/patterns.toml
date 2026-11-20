@@ -1,0 +1,18 @@
+# Rust rules for the check-patterns hook from robot-dev-kit (same checker as the C/C++ and ROS profiles).
+# Mostly for single-crate repos: in a workspace, the per-crate `unsafe_code = "deny"` lint does the same job.
+
+[[rule]]
+id = "rs-unsafe-outside-hal"
+pattern = '\bunsafe\s*(\{|fn\b|impl\b)'
+include = ["**/*.rs"]
+exclude = ["**/hal/**", "**/bsp/**", "crates/*-hal/**", "crates/*-bsp/**", "target/**"]
+message = """unsafe belongs in the hal/bsp module behind a safe API. Add (or extend) a safe wrapper there \
+with a // SAFETY: comment, and call that from here."""
+
+[[rule]]
+id = "rs-no-static-mut"
+pattern = '\bstatic\s+mut\b'
+include = ["**/*.rs"]
+exclude = ["target/**"]
+message = """static mut is a data race waiting for an interrupt. Use an atomic, \
+critical_section::Mutex<RefCell<T>>, an embassy channel/signal, or RTIC shared resources."""

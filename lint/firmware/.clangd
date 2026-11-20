@@ -1,0 +1,10 @@
+# For clangd in Cursor / VS Code with arm-none-eabi-gcc projects.
+# Also set the clangd extension's argument:  --query-driver=/path/to/arm-none-eabi-*
+# so clangd asks GCC for its system include paths (no manual -isystem needed in the editor).
+CompileFlags:
+  Add: [--target=arm-none-eabi, -Wno-unknown-warning-option]
+  # GCC-only flags clang chokes on. Add any others clangd reports as "unknown argument".
+  Remove: [-fno-tree-loop-distribute-patterns, -fcyclomatic-complexity, -mthumb-interwork, -specs=*, --specs=*]
+Diagnostics:
+  ClangTidy:
+    FastCheckFilter: Loose

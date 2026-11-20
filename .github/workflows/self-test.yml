@@ -1,0 +1,50 @@
+# Runs on every push and PR: every rule must still fire on the bad fixtures (tests/expected/*.txt),
+# adopt.sh must still work for every profile, and the kit's own code must pass its own rules.
+# Tool versions are pinned so a result change means a rule changed, not a tool upgrade.
+# To upgrade a tool: bump it here, run `python3 tests/run_tests.py --update` locally, review the diff.
+name: self-test
+
+on:
+  push:
+  pull_request:
+
+env:
+  RUFF_VERSION: "0.16.9"
+  CLANG_TIDY_VERSION: "23.1.4"
+  RUST_VERSION: "1.97.0"
+
+jobs:
+  rules:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # adopt.sh reads the version from tags
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned lint tools
+        run: |
+          uv tool install "ruff==${RUFF_VERSION}"
+          uv tool install "clang-tidy==${CLANG_TIDY_VERSION}"
+          clang-tidy --version
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install "${RUST_VERSION}" --profile minimal --component clippy,rustfmt
+          rustup default "${RUST_VERSION}"
+
+      - name: Kit's own code passes its own rules
+        run: |
+          ruff check src tests/run_tests.py
+          ruff format --check src tests/run_tests.py
+          shellcheck -S warning scripts/*.sh lint/shared/*.sh tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
+
+      - name: Rules fire on the bad fixtures
+        run: python3 tests/run_tests.py --strict
+
+      - name: adopt.sh works for every profile
+        run: |
+          git config --global user.email ci@example.com && git config --global user.name ci
+          bash tests/test_adopt.sh

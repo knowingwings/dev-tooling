@@ -1,0 +1,18 @@
+# no_std firmware (embassy / RTIC / bare cortex-m). Put at the firmware workspace root.
+# Remove entries for crates you don't depend on (clippy warns about paths it can't resolve).
+
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+disallowed-methods = [
+  { path = "cortex_m::asm::delay", reason = "busy-wait blocks the core and its timing depends on clock config. Use embassy_time::Timer::after or a hardware timer." },
+  { path = "embedded_hal::delay::DelayNs::delay_ms", reason = "blocking delay. In async code use embassy_time::Timer::after_millis(..).await; in drivers, a timeout-based state machine." },
+  { path = "embedded_hal::delay::DelayNs::delay_us", reason = "blocking delay. Use an async timer, or keep busy-waits inside the HAL crate with #[expect(.., reason)]." },
+  { path = "core::mem::transmute", reason = "use bytemuck / zerocopy for safe casts, or from_le_bytes for wire formats." },
+]
+
+disallowed-macros = [
+  { path = "core::panic", reason = "panics reset the MCU mid-motion. Return an error and let the caller move to a safe state." },
+]

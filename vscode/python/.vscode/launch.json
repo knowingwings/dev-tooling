@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: module",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "${input:module}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: attach to process",
+      "type": "debugpy",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ],
+  "inputs": [
+    { "id": "module", "type": "promptString", "description": "Module (e.g. my_tool.cli)" }
+  ]
+}

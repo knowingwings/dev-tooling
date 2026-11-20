@@ -1,0 +1,6 @@
+// Host Rust workspace (tools, services, ROS 2 nodes via rclrs/r2r). Commit this folder.
+{
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.allTargets": true,          // also lint tests and examples
+  "rust-analyzer.cargo.features": "all"
+}

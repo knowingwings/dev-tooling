@@ -1,0 +1,45 @@
+# Project rules for ROS 2 repos, enforced by the check-patterns pre-commit hook from robot-dev-kit.
+# Every time you correct an agent (or a colleague) for the same thing twice, add a rule here.
+# Write the message as the fix, so an agent can act on it without asking.
+
+[[rule]]
+id = "ros-no-wall-timer"
+pattern = 'create_wall_timer\s*\('
+include = ["**/*.cpp", "**/*.hpp", "**/*.py"]
+exclude = ["test/**", "**/test/**"]
+message = """Wall timers ignore use_sim_time, so this breaks in simulation and bag replay. \
+C++: rclcpp::create_timer(this, this->get_clock(), period, cb). Python: self.create_timer(period, cb). \
+If you truly need wall time (e.g. a hardware watchdog), add lint-allow with that reason."""
+
+[[rule]]
+id = "ros-no-system-clock"
+pattern = 'std::chrono::system_clock::now\s*\('
+include = ["**/*.cpp", "**/*.hpp"]
+exclude = ["test/**", "**/test/**"]
+message = """Use this->now() / get_clock()->now() for timestamps so sim time and bag replay work. \
+std::chrono::steady_clock is fine for measuring elapsed durations."""
+
+[[rule]]
+id = "ros-no-stdout"
+pattern = 'std::(cout|cerr)\b|(^|[^\w.])printf\s*\('
+include = ["**/src/**/*.cpp", "**/src/**/*.hpp", "src/**/*.cpp", "**/include/**/*.hpp"]
+message = """Use RCLCPP_INFO/WARN/ERROR (RCLCPP_*_THROTTLE inside loops and high-rate callbacks) \
+so output reaches /rosout and respects log levels."""
+
+[[rule]]
+id = "ros-no-bare-qos-depth"
+pattern = 'create_(publisher|subscription)\s*(<[^>]*>)?\s*\([^()]*,\s*\d+\s*[,)]'
+include = ["**/*.cpp", "**/*.hpp", "**/*.py"]
+exclude = ["test/**", "**/test/**"]
+message = """Don't pass a bare queue depth: publishers and subscribers silently fail to connect when QoS \
+doesn't match. Use a named profile (rclcpp::SensorDataQoS(), rclcpp::QoS(10).reliable(), \
+rclpy.qos.qos_profile_sensor_data) or one from your package's qos header/module."""
+
+[[rule]]
+id = "ros-no-spin-in-node"
+pattern = '\b(spin_until_future_complete|spin_some|spin_once)\s*\('
+include = ["**/src/**/*.cpp", "**/src/**/*.hpp", "**/*_node.py", "**/nodes/**/*.py"]
+exclude = ["**/main.cpp", "**/*_main.cpp", "test/**", "**/test/**"]
+message = """Spinning from inside a node re-enters the executor and deadlocks under load. \
+Use async_send_request / call_async with a done-callback, or put the client in its own \
+callback group with a MultiThreadedExecutor. Spinning belongs in main()."""

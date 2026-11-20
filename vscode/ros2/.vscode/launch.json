@@ -1,0 +1,44 @@
+// Debugging ROS 2 nodes. The reliable pattern: start the node (or launch file) in a terminal as normal,
+// then ATTACH, so the ROS environment, parameters and remappings are exactly what you run every day.
+// Build with RelWithDebInfo (the build tasks do) or Debug to get usable symbols.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C++: attach to running node",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "${workspaceFolder}/install/${input:package}/lib/${input:package}/${input:executable}",
+      "processId": "${command:pickProcess}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        { "description": "Pretty-print STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+      ]
+    },
+    {
+      "name": "C++: launch node under gdb",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/install/${input:package}/lib/${input:package}/${input:executable}",
+      "args": ["--ros-args", "-p", "use_sim_time:=false"],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.vscode/ros.env",
+      "MIMode": "gdb",
+      "preLaunchTask": "ros2: build package",
+      "setupCommands": [
+        { "description": "Pretty-print STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+      ]
+    },
+    {
+      "name": "Python: attach to running node",
+      "type": "debugpy",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "justMyCode": true
+    }
+  ],
+  "inputs": [
+    { "id": "package", "type": "promptString", "description": "Package name" },
+    { "id": "executable", "type": "promptString", "description": "Executable name" }
+  ]
+}

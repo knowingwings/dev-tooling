@@ -1,0 +1,51 @@
+# Project rules for embedded firmware, enforced by the check-patterns pre-commit hook from robot-dev-kit.
+# Adjust the directory names (bsp/, drivers/, Drivers/, app/) to your layout.
+# These encode the architecture: hardware access lives in one layer, so app logic
+# can be unit-tested on your laptop and reviewed without a datasheet open.
+
+[[rule]]
+id = "fw-register-access-outside-bsp"
+# STM32/CMSIS-style peripheral instances. Add your MCU's (e.g. NRF_GPIO, PORTA) as needed.
+pattern = '\b(GPIO[A-K]|TIM\d{1,2}|US?ART\d|LPUART\d|SPI\d|I2C\d|ADC\d?|DAC\d?|CAN\d?|FDCAN\d|DMA\d(_(Stream|Channel)\d)?|RCC|EXTI|SYSCFG|PWR|FLASH)\s*->'
+include = ["**/*.c", "**/*.h", "**/*.cpp", "**/*.hpp"]
+exclude = ["bsp/**", "drivers/**", "Drivers/**", "third_party/**", "vendor/**", "**/system_*.c", "**/startup_*.s"]
+message = """Direct peripheral register access belongs in bsp/ or drivers/. Call a driver function \
+(or add one there) so the hardware dependency stays in one layer and this code can be tested on the host."""
+
+[[rule]]
+id = "fw-no-blocking-delay"
+pattern = '\b(HAL_Delay|delay_ms|delay_us|_delay_ms|_delay_us)\s*\('
+include = ["**/*.c", "**/*.cpp"]
+exclude = ["bsp/**", "Drivers/**", "third_party/**", "vendor/**", "test/**"]
+message = """Busy-wait delays outside init code block the main loop (or starve other tasks). \
+Use a hardware timer, an RTOS delay inside a task (vTaskDelay / k_msleep), or a non-blocking state machine. \
+During early init before timers are up, add lint-allow saying so."""
+
+[[rule]]
+id = "fw-no-unbounded-wait"
+# Empty-body wait loops like `while (!(USART1->ISR & USART_ISR_TXE));` (but not the end of a do/while).
+pattern = '^(?!\s*\})(?!.*\bdo\b).*\bwhile\s*\([^;{}]*\)\s*;'
+include = ["**/*.c", "**/*.cpp"]
+exclude = ["Drivers/**", "third_party/**", "vendor/**", "test/**"]
+message = """Wait loop with no timeout: if the hardware never sets the flag, the firmware hangs. \
+Use a bounded wait helper (e.g. wait_flag(reg, mask, timeout_ms) returning an error code) and handle the error. \
+For an intentional halt (fault handler), add lint-allow saying so."""
+
+[[rule]]
+id = "fw-no-double"
+# Remove this rule if your MCU has a double-precision FPU (e.g. Cortex-M7 with FPv5-DP).
+pattern = '\bdouble\b'
+include = ["**/*.c", "**/*.h", "**/*.cpp", "**/*.hpp"]
+exclude = ["Drivers/**", "third_party/**", "vendor/**", "test/**", "tools/**"]
+message = """This MCU's FPU is single-precision: double falls back to slow software emulation. \
+Use float and f-suffixed literals (1.0f). -Wdouble-promotion catches the implicit cases."""
+
+[[rule]]
+id = "fw-isr-no-hal-blocking"
+# Blocking HAL calls inside interrupt handlers (the handler body usually follows on later lines,
+# so this catches the common one-line callback form; clang-tidy + review cover the rest).
+pattern = '_(IRQHandler|Callback)\s*\(.*\)\s*\{.*\b(HAL_\w+_(Transmit|Receive)|HAL_Delay|printf)\s*\('
+include = ["**/*.c", "**/*.cpp"]
+exclude = ["Drivers/**", "third_party/**", "vendor/**"]
+message = """Blocking call inside an ISR/HAL callback. Set a flag or push to a queue, and do the work in the main loop or a task. \
+Use the _IT or _DMA HAL variants if you must start a transfer from here."""

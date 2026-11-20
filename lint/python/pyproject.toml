@@ -1,0 +1,62 @@
+# Template for standalone Python projects: test rigs, HIL scripts, serial/CAN tools, data analysis.
+# (ROS 2 Python packages use ros2/ruff.toml instead: ROS has its own packaging and conventions.)
+#
+#   uv init --no-readme my_tool && cd my_tool   # then replace pyproject.toml with this
+#   uv sync                                     # creates .venv with the dev tools below
+#   uv add pyserial python-can numpy           # runtime deps as needed
+
+[project]
+name = "my-tool"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["ruff", "pyright", "pytest", "pytest-timeout"]
+
+# ---- ruff -------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+output-format = "concise"
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "B", "UP", "SIM", "N", "RUF",
+  "ANN",   # type annotations everywhere: pyright then catches real bugs
+  "PTH",   # pathlib over os.path
+  "PERF",  # performance anti-patterns
+  "PLE", "PLW",
+  "S",     # security (bandit): shell=True, eval, hardcoded passwords...
+  "TID",   # banned APIs below
+  "DTZ",   # timezone-naive datetimes in logs and data files
+  "BLE",   # no bare `except Exception:` swallowing errors
+]
+ignore = ["ANN401", "S101"]   # allow Any where needed; allow assert (used in tests)
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S", "PLW"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"os.system".msg = "Use subprocess.run([...], check=True): no shell injection, and failures raise."
+"serial.serial_for_url".msg = "Use serial.Serial(port, baud, timeout=...) with an explicit timeout so reads can't hang forever."
+"pickle".msg = "Not safe for data from devices or files you didn't write. Use json, numpy .npz, or a struct-packed format."
+
+# ---- pyright (same engine as Pylance, so editor and pre-commit agree) ---------
+[tool.pyright]
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"   # "strict" for new code with typed dependencies
+reportMissingTypeStubs = false  # pyserial, python-can etc. ship without stubs
+reportUnnecessaryTypeIgnoreComment = "error"
+
+# ---- pytest -----------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Hardware tests are opt-in: `uv run pytest -m hardware`. Plain `pytest` (what agents run) never touches a device.
+addopts = "-ra --strict-markers -m 'not hardware'"
+timeout = 60                    # a hung serial read fails the test instead of hanging the run
+markers = [
+  "hardware: needs a real device attached (run explicitly with -m hardware)",
+]

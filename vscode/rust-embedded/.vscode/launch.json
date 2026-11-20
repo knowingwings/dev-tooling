@@ -1,0 +1,43 @@
+// probe-rs: works with ST-Link, J-Link, CMSIS-DAP/picoprobe, ESP USB-JTAG. No OpenOCD config needed.
+// Set "chip" (list them with `probe-rs chip list`) and the binary name.
+//
+// SAFETY on motor boards: a breakpoint halts the core but not the PWM timers. Set the timer
+// debug-freeze bits in init (STM32: DBGMCU APB2FZ DBG_TIM1_STOP) or debug with motor power off.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "probe-rs: build, flash, debug",
+      "type": "probe-rs-debug",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "chip": "STM32F407VGTx",
+      "connectUnderReset": false,
+      "flashingConfig": { "flashingEnabled": true, "haltAfterReset": false },
+      "coreConfigs": [
+        {
+          "coreIndex": 0,
+          "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${workspaceFolderBasename}",
+          "svdFile": "${workspaceFolder}/tools/svd/STM32F407.svd",
+          "rttEnabled": true
+        }
+      ],
+      "preLaunchTask": "rust: build firmware (debug)"
+    },
+    {
+      "name": "probe-rs: attach (no flash, no reset)",
+      "type": "probe-rs-debug",
+      "request": "attach",
+      "cwd": "${workspaceFolder}",
+      "chip": "STM32F407VGTx",
+      "coreConfigs": [
+        {
+          "coreIndex": 0,
+          "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${workspaceFolderBasename}",
+          "svdFile": "${workspaceFolder}/tools/svd/STM32F407.svd",
+          "rttEnabled": true
+        }
+      ]
+    }
+  ]
+}

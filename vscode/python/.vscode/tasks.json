@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "py: check (ruff + pyright)",
+      "type": "shell",
+      "command": "uv run ruff check . && uv run pyright",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": [
+        {
+          "owner": "ruff",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": { "regexp": "^(.+?\\.py):(\\d+):(\\d+): ([A-Z]+\\d+) (.*)$", "file": 1, "line": 2, "column": 3, "code": 4, "message": 5 },
+          "severity": "warning"
+        },
+        {
+          "owner": "pyright",
+          "fileLocation": "absolute",
+          "pattern": { "regexp": "^\\s+(.+?\\.py):(\\d+):(\\d+) - (error|warning|information): (.*)$", "file": 1, "line": 2, "column": 3, "severity": 4, "message": 5 }
+        }
+      ]
+    },
+    {
+      "label": "py: test",
+      "type": "shell",
+      "command": "uv run pytest",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "py: HARDWARE tests (device attached)",
+      "type": "shell",
+      "command": "uv run pytest -m hardware -v",
+      "problemMatcher": []
+    }
+  ]
+}

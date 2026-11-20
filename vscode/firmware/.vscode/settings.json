@@ -1,0 +1,25 @@
+// Workspace settings for a CMake + arm-none-eabi-gcc firmware repo. Commit this folder.
+// Machine-specific tool paths (toolchain, OpenOCD, J-Link) go in USER settings, not here,
+// so they can differ between work and home. See the README.
+{
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=never",
+    "--completion-style=detailed",
+    "--compile-commands-dir=${workspaceFolder}/build",
+    // Lets clangd ask arm-none-eabi-gcc for its newlib/system include paths.
+    "--query-driver=/**/arm-none-eabi-*"
+  ],
+
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.configureSettings": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" },
+  "cmake.configureOnOpen": true,
+
+  // The register views and RTT terminal from Cortex-Debug get crowded; keep these tidy.
+  "cortex-debug.variableUseNaturalFormat": true,
+  "cortex-debug.liveWatchRefreshRate": 250,
+
+  "files.associations": { "*.h": "c" },
+  "files.exclude": { "build": true, "build-host": true }
+}

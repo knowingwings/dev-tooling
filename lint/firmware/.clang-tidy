@@ -1,0 +1,55 @@
+# clang-tidy for embedded C (and C++) firmware. Needs clang-tidy 20+ (pip install clang-tidy).
+#
+# Cross-compiling gotcha: clang-tidy reads your arm-none-eabi-gcc compile commands but is clang,
+# so it needs (a) the target and (b) GCC's newlib headers. Find the header paths with:
+#   arm-none-eabi-gcc -xc -E -v /dev/null 2>&1 | sed -n '/#include <...>/,/End of search/p'
+# and add them to ExtraArgs below as -isystem entries.
+#
+# Put a smaller .clang-tidy with `InheritParentConfig: true` in bsp/ or drivers/ if those need
+# looser rules (e.g. register casts).
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  cert-err33-c,
+  cert-int09-c,
+  cert-msc30-c,
+  cert-str34-c,
+  cppcoreguidelines-init-variables,
+  hicpp-signed-bitwise,
+  hicpp-multiway-paths-covered,
+  misc-*,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-avoid-unconditional-preprocessor-if
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '.*/(Drivers|third_party|vendor|CMSIS)/.*'
+
+ExtraArgsBefore:
+  - --target=arm-none-eabi
+ExtraArgs:
+  - -Wno-unknown-warning-option
+  - -Wno-unused-command-line-argument
+  # - -isystem/opt/arm-gnu-toolchain/arm-none-eabi/include      # <- from the command above
+  # - -isystem/opt/arm-gnu-toolchain/lib/gcc/arm-none-eabi/13.3.1/include
+
+CheckOptions:
+  # ISRs and drivers should be short and obvious.
+  readability-function-cognitive-complexity.Threshold: 20
+  readability-function-size.LineThreshold: 60
+  # MISRA-style: no recursion is enabled via misc-no-recursion if you remove the exclusion above.
+
+  # No heap after boot, bounded string ops, logging through one macro layer.
+  # Format: regex,replacement,reason;   (POSIX ERE, matched against the qualified name)
+  bugprone-unsafe-functions.CustomFunctions: "^::(malloc|calloc|realloc|free)$,,is banned in firmware (no heap: fragmentation and non-deterministic timing). Use a statically sized buffer or a fixed-block pool;^::sprintf$,snprintf,is unbounded;^::(printf|puts|putchar)$,,is banned: use the LOG_* macros so output can be compiled out and routed to UART/RTT;^::(atoi|atof|atol)$,strtol,gives no error reporting"
+  bugprone-unsafe-functions.ReportDefaultFunctions: true
+...

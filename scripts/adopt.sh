@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# Add a robot-dev-kit profile to a project repo.
+#
+#   scripts/adopt.sh <profile> <repo> [--workspace <dir>] [--diff] [--dry-run]
+#
+#   profile      ros2 | firmware | rust | rust-embedded | python
+#   repo         the project's git repo root
+#   --workspace  ROS 2 only: colcon workspace root for .vscode/ and .devcontainer/ (default: <repo>)
+#   --diff       don't copy; show how the repo's copies differ from this kit version (for updating)
+#   --dry-run    print what would be copied
+#
+# Never overwrites a file: anything that already exists is listed so you can merge it by hand
+# (use --diff to see the differences). Writes .robot-kit-version and pins the shared pre-commit
+# hooks to this kit's version.
+set -euo pipefail
+
+KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+die() { echo "adopt: $*" >&2; exit 1; }
+
+[[ $# -ge 2 ]] || { sed -n '2,15p' "$0"; exit 1; }
+PROFILE="$1"; REPO="$(cd "$2" && pwd)"; shift 2
+WS="$REPO"; MODE="copy"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --workspace) WS="$(cd "$2" && pwd)"; shift 2 ;;
+    --diff) MODE="diff"; shift ;;
+    --dry-run) MODE="dry"; shift ;;
+    *) die "unknown option $1" ;;
+  esac
+done
+git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "$REPO is not a git repo"
+
+VERSION="$(git -C "$KIT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+REV="$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || git -C "$KIT" rev-parse HEAD)"
+
+# "source|destination" pairs; destinations are relative to $REPO, or start with WS: for the workspace root.
+L="$KIT/lint"; V="$KIT/vscode"
+case "$PROFILE" in
+  ros2) PAIRS=(
+      "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
+      "$L/ros2/patterns.toml|patterns.toml" "$L/ros2/.pre-commit-config.yaml|.pre-commit-config.yaml"
+      "$L/ros2/CLAUDE.md|CLAUDE.md" "$V/ros2/.vscode|WS:.vscode" "$V/ros2/.devcontainer|WS:.devcontainer")
+    IGNORE=(build/ install/ log/ .vscode/ros.env .cache/)
+    TODO="Add cmake-snippet.cmake ($L/ros2/cmake-snippet.cmake) to each ament_cmake package (SETUP.md Phase 2.4).
+Delete test/test_flake8.py and test/test_pep257.py from ament_python packages.
+Not on Jazzy? Change the distro in .devcontainer/ and .vscode/settings.json (SETUP.md Phase 2.3)." ;;
+  firmware) PAIRS=(
+      "$L/firmware/.clang-tidy|.clang-tidy" "$L/firmware/.clang-format|.clang-format" "$L/firmware/.clangd|.clangd"
+      "$L/firmware/patterns.toml|patterns.toml" "$L/firmware/.pre-commit-config.yaml|.pre-commit-config.yaml"
+      "$L/firmware/CLAUDE.md|CLAUDE.md" "$L/firmware/warnings.cmake|cmake/warnings.cmake" "$V/firmware/.vscode|.vscode")
+    IGNORE=(build/ build-host/)
+    TODO="Wire cmake/warnings.cmake into CMakeLists.txt (SETUP.md Phase 3.3).
+Rename the folders in patterns.toml to your layout (3.2).
+Add the arm-none-eabi include paths to .clang-tidy (3.4).
+HUMAN: set MCU, probe and SVD in .vscode/launch.json and tasks.json (3.5)." ;;
+  rust|rust-embedded)
+    CLIPPY="$L/rust/clippy.toml"; VS="$V/rust/.vscode"
+    [[ "$PROFILE" == rust-embedded ]] && { CLIPPY="$L/rust/embedded/clippy.toml"; VS="$V/rust-embedded/.vscode"; }
+    PAIRS=(
+      "$CLIPPY|clippy.toml" "$L/rust/rustfmt.toml|rustfmt.toml" "$L/rust/rust-toolchain.toml|rust-toolchain.toml"
+      "$L/rust/patterns.toml|patterns.toml" "$L/rust/.pre-commit-config.yaml|.pre-commit-config.yaml"
+      "$L/rust/CLAUDE.md|CLAUDE.md" "$VS|.vscode")
+    IGNORE=(target/)
+    TODO="Merge $L/rust/Cargo-lints.toml into Cargo.toml, and add [lints] workspace = true to each crate (SETUP.md Phase 4.3).
+Set channel in rust-toolchain.toml to your current rustc version, and edition in rustfmt.toml to match your crates (4.2, 4.3)."
+    [[ "$PROFILE" == rust-embedded ]] && TODO+="
+Set rust-analyzer.cargo.target in .vscode/settings.json; HUMAN: set chip and SVD in .vscode/launch.json (4.4)." ;;
+  python) PAIRS=(
+      "$L/python/.pre-commit-config.yaml|.pre-commit-config.yaml" "$L/python/CLAUDE.md|CLAUDE.md"
+      "$L/python/pyproject.toml|pyproject.toml" "$V/python/.vscode|.vscode")
+    IGNORE=(.venv/)
+    TODO="If pyproject.toml was skipped, merge [dependency-groups] and the [tool.*] sections from $L/python/pyproject.toml (SETUP.md Phase 5.2).
+Mark tests that need a device with @pytest.mark.hardware (5.3).
+Run: uv sync" ;;
+  *) die "unknown profile '$PROFILE' (ros2, firmware, rust, rust-embedded, python)" ;;
+esac
+
+dest_path() { local d="$1"; [[ "$d" == WS:* ]] && echo "$WS/${d#WS:}" || echo "$REPO/$d"; }
+
+# Every file a pair covers, as "source-file|destination-file".
+expand() {
+  local src="$1" dst="$2"
+  if [[ -d "$src" ]]; then
+    (cd "$src" && find . -type f | sed 's|^\./||' | sort) | while read -r f; do echo "$src/$f|$dst/$f"; done
+  else
+    echo "$src|$dst"
+  fi
+}
+
+copied=(); skipped=()
+for pair in "${PAIRS[@]}"; do
+  src="${pair%%|*}"; dst="$(dest_path "${pair#*|}")"
+  while IFS='|' read -r s d; do
+    rel="${d#"$REPO"/}"; [[ "$d" == "$WS"/* && "$WS" != "$REPO" ]] && rel="(workspace) ${d#"$WS"/}"
+    case "$MODE" in
+      diff)
+        if [[ -f "$d" ]]; then
+          diff -u --label "repo: $rel" --label "kit $VERSION" "$d" "$s" || true
+        else
+          echo "missing in repo: $rel"
+        fi ;;
+      dry) [[ -e "$d" ]] && echo "skip (exists): $rel" || echo "copy: $rel" ;;
+      copy)
+        if [[ -e "$d" ]]; then skipped+=("$rel"); else
+          mkdir -p "$(dirname "$d")"; cp -p "$s" "$d"; copied+=("$rel")
+        fi ;;
+    esac
+  done < <(expand "$src" "$dst")
+done
+
+[[ "$MODE" != copy ]] && exit 0
+
+# Pin the shared hooks to this kit version (only in a config we just copied).
+if printf '%s\n' "${copied[@]}" | grep -qx '.pre-commit-config.yaml'; then
+  sed -i.bak "s|^\(    rev: \)v0\.1\.0\(.*adopt.sh.*\)$|\1${REV}\2|" "$REPO/.pre-commit-config.yaml" && rm -f "$REPO/.pre-commit-config.yaml.bak"
+fi
+
+# .gitignore entries
+touch "$REPO/.gitignore"
+for g in "${IGNORE[@]}"; do grep -qxF "$g" "$REPO/.gitignore" || echo "$g" >> "$REPO/.gitignore"; done
+
+printf 'profile=%s\nkit_version=%s\nadopted=%s\n' "$PROFILE" "$VERSION" "$(date +%F)" > "$REPO/.robot-kit-version"
+
+if command -v pre-commit >/dev/null && [[ -f "$REPO/.pre-commit-config.yaml" ]]; then
+  (cd "$REPO" && pre-commit install >/dev/null && pre-commit install --hook-type pre-push >/dev/null) \
+    && hooks="installed" || hooks="FAILED (run: pre-commit install && pre-commit install --hook-type pre-push)"
+else
+  hooks="not installed (pre-commit missing: uv tool install pre-commit)"
+fi
+
+echo "robot-dev-kit $VERSION, profile $PROFILE -> $REPO"
+echo
+echo "Copied (${#copied[@]}):"; printf '  %s\n' "${copied[@]:-none}"
+if [[ ${#skipped[@]} -gt 0 ]]; then
+  echo "Skipped, already exist (${#skipped[@]}): merge by hand; see differences with --diff"
+  printf '  %s\n' "${skipped[@]}"
+fi
+echo "Git hooks: $hooks"
+echo
+echo "Still to do:"
+while IFS= read -r line; do echo "  - $line"; done <<< "$TODO"

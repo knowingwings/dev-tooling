@@ -1,0 +1,36 @@
+# Ruff for ROS 2 Python packages (nodes, launch files, tests).
+# Replaces ament_flake8 / ament_pep257 / ament_mypy-style checks with one fast tool.
+line-length = 99            # matches ament_flake8
+target-version = "py310"    # Humble = 3.10, Jazzy = 3.12; set to your oldest distro
+output-format = "concise"   # one line per error: VS Code problem matchers and agents parse it easily
+
+[format]
+quote-style = "single"      # ROS 2 Python convention
+
+[lint]
+select = [
+  "E", "W", "F",   # pycodestyle + pyflakes
+  "I",             # import sorting
+  "B",             # bugbear: real bugs (mutable defaults, etc.)
+  "UP",            # modern syntax
+  "SIM",           # simplifications
+  "N",             # pep8 naming
+  "ANN",           # type annotations: agents write better code against typed signatures
+  "T20",           # no print(): use self.get_logger()
+  "TID",           # banned APIs below
+  "DTZ",           # naive datetimes
+  "PLE",           # pylint errors
+  "RUF",
+]
+ignore = ["ANN401"]   # allow Any where genuinely needed
+
+[lint.per-file-ignores]
+"**/test/**" = ["ANN", "T20", "TID251"]
+"**/launch/**" = ["ANN"]
+"setup.py" = ["ANN", "T20"]
+
+[lint.flake8-tidy-imports.banned-api]
+"time.sleep".msg = "Blocks the rclpy executor. Use self.create_timer(period, callback) or a Rate in a dedicated thread."
+"time.time".msg = "Wall clock ignores use_sim_time. Use self.get_clock().now()."
+"datetime.datetime.now".msg = "Wall clock ignores use_sim_time. Use self.get_clock().now()."
+"rclpy.spin_until_future_complete".msg = "Deadlocks if called from inside a callback. Use client.call_async(req).add_done_callback(cb); spin only in main()."

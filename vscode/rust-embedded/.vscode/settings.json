@@ -1,0 +1,8 @@
+// no_std firmware (embassy / RTIC / cortex-m-rt). Commit this folder.
+// Without these, rust-analyzer checks for your laptop's target and reports bogus errors about `std`.
+{
+  "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",   // match .cargo/config.toml [build] target
+  "rust-analyzer.check.allTargets": false,                  // no_std crates can't build the test harness
+  "rust-analyzer.check.command": "clippy",
+  "files.exclude": { "target": true }
+}

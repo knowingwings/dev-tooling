@@ -1,0 +1,57 @@
+# clang-tidy for ROS 2 C++ packages. Needs clang-tidy 20+ (ExcludeHeaderFilterRegex, CustomFunctions).
+# Easiest install on any distro: pip install clang-tidy  (or apt.llvm.org packages, e.g. clang-tidy-20)
+#
+# Starting on an existing repo: run on changed files only (the pre-push hook does that) so you
+# ratchet quality up instead of drowning in thousands of legacy warnings.
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-do-while,
+  misc-*,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  performance-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-uppercase-literal-suffix
+
+WarningsAsErrors: '*'
+
+# Only report on your code, not /opt/ros or generated message headers.
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '^/opt/ros/.*|.*/build/.*|.*/install/.*|.*/rosidl_generator_cpp/.*'
+
+CheckOptions:
+  # Keep functions small enough that a reviewer (or an agent) can hold them in its head.
+  readability-function-cognitive-complexity.Threshold: 25
+  readability-function-size.LineThreshold: 80
+
+  # ROS 2 naming: CamelCase types, snake_case functions/variables, trailing_ for members.
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.ProtectedMemberSuffix: _
+  readability-identifier-naming.NamespaceCase: lower_case
+
+  # Banned functions, with the fix in the message. AST-based, so no false hits in comments/strings.
+  # Format: regex,replacement,reason; (POSIX ERE, matched against the qualified name)
+  bugprone-unsafe-functions.CustomFunctions: "this_thread::sleep_(for|until)$,,blocks the ROS executor and stalls every other callback on it. Use a timer (rclcpp::create_timer) or a state machine driven by one;^::usleep$,,blocks the ROS executor. Use a timer instead;^::(std::)?rand$,,is not thread-safe and has poor randomness. Use <random> with a seeded std::mt19937"
+  bugprone-unsafe-functions.ReportDefaultFunctions: true
+...

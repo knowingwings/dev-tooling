@@ -1,0 +1,49 @@
+// Ctrl+Shift+B = build. Flashing is deliberately a separate task, never part of build.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "fw: build",
+      "type": "shell",
+      "command": "cmake -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}/build"] }
+    },
+    {
+      "label": "fw: size",
+      "type": "shell",
+      "command": "arm-none-eabi-size -A -d build/*.elf | grep -E '^(\\.text|\\.data|\\.bss|\\.rodata)|elf'",
+      "problemMatcher": []
+    },
+    {
+      "label": "fw: host tests",
+      "type": "shell",
+      "command": "cmake -B build-host -DFW_HOST_TESTS=ON && cmake --build build-host && ctest --test-dir build-host --output-on-failure",
+      "group": "test",
+      "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}/build-host"] }
+    },
+    {
+      "label": "fw: flash (OpenOCD)",
+      "type": "shell",
+      "command": "openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c \"program build/app.elf verify reset exit\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint: all (pre-commit)",
+      "type": "shell",
+      "command": "pre-commit run --all-files",
+      "problemMatcher": {
+        "owner": "check-patterns",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": { "regexp": "^(.+?):(\\d+):(\\d+): \\[([\\w-]+)\\] (.*)$", "file": 1, "line": 2, "column": 3, "code": 4, "message": 5 },
+        "severity": "error"
+      }
+    },
+    {
+      "label": "lint: clang-tidy",
+      "type": "shell",
+      "command": "pre-commit run clang-tidy --hook-stage pre-push --all-files",
+      "problemMatcher": { "base": "$gcc", "fileLocation": "absolute" }
+    }
+  ]
+}

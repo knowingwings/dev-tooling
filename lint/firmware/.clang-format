@@ -1,0 +1,17 @@
+# Firmware C style. The specifics matter less than having *one* style enforced by a tool,
+# so agents and humans never argue about it in review.
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveAssignments: None
+AlignTrailingComments: true
+PointerAlignment: Right
+SortIncludes: Never        # include order can matter with vendor headers
+InsertBraces: true         # always braces on if/else/for/while (MISRA 15.6)
+...

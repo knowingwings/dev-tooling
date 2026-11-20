@@ -1,0 +1,53 @@
+// Cortex-Debug configs. Edit the target cfg, device and SVD for your MCU.
+// SVD files (register maps) come from the vendor pack, e.g. STM32F407.svd; put them in tools/svd/.
+//
+// SAFETY for motor/actuator boards: halting the core at a breakpoint does NOT stop timers by default,
+// so PWM keeps running with frozen control output. In your init code, set the debug-freeze bits for
+// your PWM timers (STM32: DBGMCU->APB2FZ |= DBGMCU_APB2_FZ_DBG_TIM1_STOP, etc.) and use the timer's
+// break/MOE behaviour, or debug with motor power off.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug: build, flash, run to main (ST-Link/OpenOCD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/app.elf",
+      "configFiles": ["interface/stlink.cfg", "target/stm32f4x.cfg"],
+      "svdFile": "${workspaceFolder}/tools/svd/STM32F407.svd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "fw: build",
+      "showDevDebugOutput": "none"
+    },
+    {
+      "name": "Attach: no reset, no flash (inspect a running board)",
+      "type": "cortex-debug",
+      "request": "attach",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/app.elf",
+      "configFiles": ["interface/stlink.cfg", "target/stm32f4x.cfg"],
+      "svdFile": "${workspaceFolder}/tools/svd/STM32F407.svd"
+    },
+    {
+      "name": "Debug: J-Link",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "jlink",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/app.elf",
+      "device": "STM32F407VG",
+      "interface": "swd",
+      "svdFile": "${workspaceFolder}/tools/svd/STM32F407.svd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "fw: build",
+      "rttConfig": {
+        "enabled": true,
+        "address": "auto",
+        "decoders": [{ "label": "RTT", "port": 0, "type": "console" }]
+      }
+    }
+  ]
+}

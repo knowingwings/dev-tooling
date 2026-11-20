@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "llvm-vs-code-extensions.vscode-clangd",
+    "ms-vscode.cpptools",
+    "ms-vscode.cmake-tools",
+    "marus25.cortex-debug",
+    "ms-vscode.vscode-serial-monitor",
+    "usernamehw.errorlens",
+    "charliermarsh.ruff"
+  ]
+}

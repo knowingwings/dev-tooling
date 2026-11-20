@@ -1,0 +1,6 @@
+# add to the repo's .gitignore
+build/
+install/
+log/
+.vscode/ros.env
+.cache/
