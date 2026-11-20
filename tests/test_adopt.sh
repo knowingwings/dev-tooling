@@ -5,6 +5,8 @@ set -euo pipefail
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 fail=0
+# shellcheck disable=SC2034  # used inside check()'s eval
+EXPECTED_REV="$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || git -C "$KIT" rev-parse HEAD)"
 check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 
 for profile in ros2 firmware rust rust-embedded python typst; do
@@ -29,7 +31,7 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   check "PR template copied"                 '[[ -f "$R/.github/pull_request_template.md" ]]'
   check "issue templates copied"             '[[ -f "$R/.github/ISSUE_TEMPLATE/agent-mistake.yml" && -f "$R/.github/ISSUE_TEMPLATE/task.yml" ]]'
   check "CODEOWNERS owner filled in"         'grep -q "^/AGENTS.md *@someone$" "$R/.github/CODEOWNERS"'
-  check "pr-checks pinned to kit version"    'grep -q "KIT_REV: $(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || echo v0.1.0) " "$R/.github/workflows/pr-checks.yml"'
+  check "pr-checks pinned to kit version"    'grep -q "KIT_REV: $EXPECTED_REV " "$R/.github/workflows/pr-checks.yml"'
   check "feature map copied"                 '[[ -f "$R/docs/FEATURE_MAP.md" ]]'
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'
   # shellcheck disable=SC2034  # used inside check()'s eval
