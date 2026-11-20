@@ -69,7 +69,7 @@ jobs:
         run: PYTHONPATH=src python3 -m dev_tooling.check_prose --base "origin/${{ github.base_ref }}"
 
       - name: Checker unit tests
-        run: python3 -m unittest -v tests/test_check_comments.py tests/test_check_git.py tests/test_check.py tests/test_check_prose.py tests/test_check_secrets.py
+        run: python3 -m unittest discover -v -s tests -p 'test_*.py'
 
       - name: as-agent (offline)
         run: bash tests/test_as_agent.sh
