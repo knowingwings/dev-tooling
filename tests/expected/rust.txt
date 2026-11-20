@@ -7,6 +7,7 @@ clippy:disallowed_types 2
 clippy:print_stdout 1
 clippy:undocumented_unsafe_blocks 1
 clippy:unwrap_used 1
+comments:no-comments 2
 patterns:rs-no-static-mut 1
-patterns:rs-unsafe-outside-hal 1
+patterns:rs-unsafe-outside-hal 2
 rustc:unsafe_code 1

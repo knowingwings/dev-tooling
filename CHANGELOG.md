@@ -9,6 +9,12 @@ First version as a repo (previously two zips: robot-lint-kit, vscode-setup).
 - `scripts/install-machine.sh`: CLI tools, extensions, settings symlinked from the repo. Detects
   Code - OSS / VSCodium (Arch) and warns; Windows falls back to a copy when symlinks aren't allowed.
 - `check-patterns` and `clang-tidy` are pre-commit hooks served from this repo, so projects no longer copy `tools/`.
+- `check-comments` hook (from Lauren Tan's approach): blocks new comments on added lines; allows doc
+  comments, `SAFETY:`, `REF(<source>): <fact>`, suppressions with a reason and licence headers.
+  Tokenizer-based (strings, raw strings, Rust lifetimes, C++ digit separators), configured per project
+  by `[comments]` in `patterns.toml`. The kit's own code follows it.
+- Agent instructions moved to `AGENTS.md` (shared `lint/agents/base.md` + a section per stack) so any
+  coding agent reads them; `CLAUDE.md` is `@AGENTS.md` plus Claude-only notes.
 - Self-test: `tests/run_tests.py` (every rule against bad fixtures), `tests/test_adopt.sh`, GitHub Actions CI.
 
 **Fixes found on a work machine**

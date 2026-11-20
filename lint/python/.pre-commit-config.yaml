@@ -19,6 +19,11 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  - repo: https://github.com/knowingwings/robot-dev-kit
+    rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
+    hooks:
+      - id: check-comments
+
   - repo: local
     hooks:
       - id: pyright

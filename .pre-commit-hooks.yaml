@@ -4,6 +4,7 @@
 #     rev: v0.1.0
 #     hooks:
 #       - id: check-patterns
+#       - id: check-comments
 #       - id: clang-tidy
 #
 # Each project keeps its own patterns.toml / .clang-tidy: the rules are per project, the tools are shared.
@@ -12,6 +13,13 @@
   name: project pattern rules (patterns.toml)
   description: Path-scoped banned patterns with fix-it messages, configured by patterns.toml in the project root.
   entry: check-patterns
+  language: python
+  types_or: [c, c++, python, rust]
+
+- id: check-comments
+  name: no new comments
+  description: Blocks comments on added lines unless they're doc comments, SAFETY, REF(source), suppressions or licence headers. Configured by [comments] in patterns.toml.
+  entry: check-comments
   language: python
   types_or: [c, c++, python, rust]
 

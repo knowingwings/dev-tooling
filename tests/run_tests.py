@@ -72,6 +72,15 @@ def patterns(d: Path) -> Counter[str]:
     return +hits
 
 
+def comments(d: Path) -> Counter[str]:
+    out = run(
+        [sys.executable, "-m", "robot_dev_kit.check_comments"],
+        d,
+        env={"PYTHONPATH": str(KIT / "src")},
+    )
+    return Counter(f"comments:{m}" for m in re.findall(r": \[(no-comments[\w-]*)\] ", out))
+
+
 def ruff(d: Path, config: Path, paths: list[str]) -> Counter[str]:
     need("ruff")
     out = run(
@@ -155,6 +164,7 @@ def prof_ros2(d: Path) -> Counter[str]:
     git_init(d)
     return (
         patterns(d)
+        + comments(d)
         + ruff(d, d / "ruff.toml", ["my_pkg"])
         + clang_tidy(d, ["my_pkg/src/bad_node.cpp"], "c++17")
     )
@@ -164,7 +174,7 @@ def prof_firmware(d: Path) -> Counter[str]:
     for f in (".clang-tidy", "patterns.toml"):
         shutil.copy(LINT / "firmware" / f, d)
     git_init(d)
-    return patterns(d) + clang_tidy(d, ["app/motor.c"], "c11", host_target=True)
+    return patterns(d) + comments(d) + clang_tidy(d, ["app/motor.c"], "c11", host_target=True)
 
 
 def prof_rust(d: Path) -> Counter[str]:
@@ -175,13 +185,14 @@ def prof_rust(d: Path) -> Counter[str]:
         + (LINT / "rust" / "Cargo-lints.toml").read_text()
     )
     git_init(d)
-    return patterns(d) + clippy(d)
+    return patterns(d) + comments(d) + clippy(d)
 
 
 def prof_python(d: Path) -> Counter[str]:
     shutil.copy(LINT / "python" / "pyproject.toml", d)
+    shutil.copy(LINT / "python" / "patterns.toml", d)
     git_init(d)
-    hits = ruff(d, d / "pyproject.toml", ["."])
+    hits = comments(d) + ruff(d, d / "pyproject.toml", ["."])
     need("uv")
     subprocess.run(["uv", "sync", "--quiet"], cwd=d, check=True)
     return hits + pyright(d) + pytest_summary(d)

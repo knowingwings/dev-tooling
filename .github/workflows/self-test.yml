@@ -40,6 +40,10 @@ jobs:
           ruff check src tests/run_tests.py
           ruff format --check src tests/run_tests.py
           shellcheck -S warning scripts/*.sh lint/shared/*.sh tests/*.sh vscode/user/*.sh vscode/ros2/.vscode/*.sh
+          PYTHONPATH=src python3 -m robot_dev_kit.check_comments --all-lines src/robot_dev_kit/*.py tests/run_tests.py
+
+      - name: Comment checker unit tests
+        run: python3 -m unittest -v tests/test_check_comments.py
 
       - name: Rules fire on the bad fixtures
         run: python3 tests/run_tests.py --strict

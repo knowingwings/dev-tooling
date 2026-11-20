@@ -34,8 +34,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 try:
-    import tomllib  # Python 3.11+
-except ModuleNotFoundError:  # Python 3.10 (e.g. Ubuntu 22.04 / ROS 2 Humble)
+    import tomllib
+except ModuleNotFoundError:
     try:
         import tomli as tomllib  # type: ignore[no-redef]
     except ModuleNotFoundError:

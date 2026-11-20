@@ -16,3 +16,11 @@ include = ["**/*.rs"]
 exclude = ["target/**"]
 message = """static mut is a data race waiting for an interrupt. Use an atomic, \
 critical_section::Mutex<RefCell<T>>, an embassy channel/signal, or RTIC shared resources."""
+
+# ---- No new comments (check-comments hook) -----------------------------------------------------
+# Comments go stale and agents use them to justify workarounds: say it in a name, a type, a check,
+# a test or the commit message. Allowed: /// and //! docs, // SAFETY: (clippy requires it on unsafe),
+# REF(<source>): <fact>, lint-allow / #[expect(.., reason)], licence headers. Only added lines are checked.
+[comments]
+enabled = true
+exclude = ["target/**", "tests/**", "**/tests/**", "benches/**", "examples/**"]

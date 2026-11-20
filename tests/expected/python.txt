@@ -1,3 +1,4 @@
+comments:no-comments 1
 pyright:reportReturnType 1
 pytest:deselected 1
 pytest:passed 1

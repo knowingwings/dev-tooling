@@ -1,7 +1,15 @@
 # Robot lint kit: ROS 2, embedded C/C++, Rust, Python
 
 Profiles: `ros2/`, `firmware/` (C/C++), `rust/` (host + `rust/embedded/`), `python/` (standalone projects).
-All of them follow the same idea and share `shared/check_patterns.py`.
+All of them share the `check-patterns`, `check-comments` and `clang-tidy` hooks, and an AGENTS.md
+built from `agents/base.md` plus the profile's own section.
+
+## No new comments (`check-comments`)
+From Lauren Tan's approach: comments go stale and agents use them to justify workarounds, so new ones
+are blocked and the why goes into names, types, checks, tests or the commit message. Only lines added in
+a commit are checked, so existing code doesn't fail when you touch it. Allowed: doc comments,
+`SAFETY:`, `REF(<datasheet/erratum/issue>): <fact>` for hardware facts, suppressions with a reason and
+licence headers. Tune or switch it off per project in the `[comments]` table of `patterns.toml`.
 
 ## Rust (`rust/`)
 - `Cargo-lints.toml`: workspace `[lints]`. No `unwrap`, no unchecked numeric casts (Rust's `-Wconversion`),
@@ -36,7 +44,7 @@ without asking. Works the same in VS Code, Cursor, the terminal and CI.
 | Static analysis + banned functions | `.clang-tidy`, `ruff.toml` (banned-api) | `.clang-tidy` |
 | Where-in-the-tree rules | `patterns.toml` | `patterns.toml` |
 | Wiring | `.pre-commit-config.yaml` | `.pre-commit-config.yaml` |
-| Agent instructions (kept short) | `CLAUDE.md` | `CLAUDE.md` + `.clangd` |
+| Agent instructions (kept short) | `AGENTS.md` (+ `CLAUDE.md` importing it) | `AGENTS.md` (+ `CLAUDE.md`) + `.clangd` |
 
 `shared/` holds `check_patterns.py` (the path-scoped rule checker) and the `clang-tidy` hook
 (runs clang-tidy over every `compile_commands.json` colcon or CMake produced).
@@ -70,7 +78,7 @@ disable it in a sub-directory `.clang-tidy` with `InheritParentConfig: true` and
 
 ## Growing it (this is the point)
 
-Whenever you correct an agent for the same thing twice, add a check instead of a CLAUDE.md line:
+Whenever you correct an agent for the same thing twice, add a check instead of an AGENTS.md line:
 1. Is it a function that should never be called? Add it to `CustomFunctions` (clang-tidy) or `banned-api` (ruff).
 2. Is it only wrong in certain directories? Add a rule to `patterns.toml`.
 3. Is it a type or units mistake? Change the API so the mistake can't compile (strong types, enums, `std::chrono`).

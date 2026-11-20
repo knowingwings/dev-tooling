@@ -1,0 +1,10 @@
+# Settings for robot-dev-kit hooks in a standalone Python project.
+
+# ---- No new comments (check-comments hook) -----------------------------------------------------
+# Comments go stale and agents use them to justify workarounds: say it in a name, a type hint, a
+# check, a test or the commit message. Docstrings are not comments and stay welcome. Allowed: noqa /
+# pyright: ignore / type: ignore with a reason, REF(<source>): <fact>, licence headers.
+# Only lines added in a commit are checked.
+[comments]
+enabled = true
+exclude = ["tests/**", "**/tests/**", ".venv/**", "build/**", "dist/**"]

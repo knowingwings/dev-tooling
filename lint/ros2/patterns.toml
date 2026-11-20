@@ -43,3 +43,11 @@ exclude = ["**/main.cpp", "**/*_main.cpp", "test/**", "**/test/**"]
 message = """Spinning from inside a node re-enters the executor and deadlocks under load. \
 Use async_send_request / call_async with a done-callback, or put the client in its own \
 callback group with a MultiThreadedExecutor. Spinning belongs in main()."""
+
+# ---- No new comments (check-comments hook) -----------------------------------------------------
+# Comments go stale and agents use them to justify workarounds: say it in a name, a type, a check,
+# a test or the commit message. Allowed: doc comments, REF(<source>): <fact>, suppressions with a
+# reason, licence headers. Only lines added in a commit are checked.
+[comments]
+enabled = true
+exclude = ["**/test/**", "**/tests/**", "**/launch/**", "build/**", "install/**", "log/**", "**/third_party/**"]

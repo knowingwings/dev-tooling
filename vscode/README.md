@@ -57,7 +57,8 @@ and their errors appear in the Problems panel (`Ctrl+Shift+M`) and inline via Er
 ## 3. Using Claude Code in this setup
 
 - The **extension** (sidebar panel, inline diffs) is best for reviewing changes. Run `claude`
-  in the integrated terminal when you want the CLI. Both read the repo's `CLAUDE.md`.
+  in the integrated terminal when you want the CLI. Both read the repo's `CLAUDE.md`, which imports
+  `AGENTS.md` (the instructions every agent shares).
 - If the extension panel can't see `ros2`/`colcon`, it inherited VS Code's environment rather than a
   sourced shell. Use the dev container (environment baked in) or launch VS Code with `code .` from a sourced terminal.
 - Review agent diffs in the side-by-side diff view. `diffEditor.hideUnchangedRegions` collapses

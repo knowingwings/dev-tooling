@@ -35,38 +35,45 @@ REV="$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || git -C "$KIT" rev
 
 # "source|destination" pairs; destinations are relative to $REPO, or start with WS: for the workspace root.
 L="$KIT/lint"; V="$KIT/vscode"
+GEN="$(mktemp -d)"; trap 'rm -rf "$GEN"' EXIT
+make_agents_md() {   # AGENTS.md = shared base + this stack's section
+  { cat "$L/agents/base.md"; echo; cat "$L/$1/AGENTS.md"; } > "$GEN/AGENTS.md"
+}
+AGENT_PAIRS=("$GEN/AGENTS.md|AGENTS.md" "$L/agents/CLAUDE.md|CLAUDE.md")
 case "$PROFILE" in
-  ros2) PAIRS=(
+  ros2) make_agents_md ros2; PAIRS=(
       "$L/ros2/.clang-tidy|.clang-tidy" "$L/ros2/.clang-format|.clang-format" "$L/ros2/ruff.toml|ruff.toml"
       "$L/ros2/patterns.toml|patterns.toml" "$L/ros2/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "$L/ros2/CLAUDE.md|CLAUDE.md" "$V/ros2/.vscode|WS:.vscode" "$V/ros2/.devcontainer|WS:.devcontainer")
+      "${AGENT_PAIRS[@]}" "$V/ros2/.vscode|WS:.vscode" "$V/ros2/.devcontainer|WS:.devcontainer")
     IGNORE=(build/ install/ log/ .vscode/ros.env .cache/)
     TODO="Add cmake-snippet.cmake ($L/ros2/cmake-snippet.cmake) to each ament_cmake package (SETUP.md Phase 2.4).
 Delete test/test_flake8.py and test/test_pep257.py from ament_python packages.
 Not on Jazzy? Change the distro in .devcontainer/ and .vscode/settings.json (SETUP.md Phase 2.3)." ;;
-  firmware) PAIRS=(
+  firmware) make_agents_md firmware; PAIRS=(
       "$L/firmware/.clang-tidy|.clang-tidy" "$L/firmware/.clang-format|.clang-format" "$L/firmware/.clangd|.clangd"
       "$L/firmware/patterns.toml|patterns.toml" "$L/firmware/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "$L/firmware/CLAUDE.md|CLAUDE.md" "$L/firmware/warnings.cmake|cmake/warnings.cmake" "$V/firmware/.vscode|.vscode")
+      "${AGENT_PAIRS[@]}" "$L/firmware/warnings.cmake|cmake/warnings.cmake" "$V/firmware/.vscode|.vscode")
     IGNORE=(build/ build-host/)
     TODO="Wire cmake/warnings.cmake into CMakeLists.txt (SETUP.md Phase 3.3).
 Rename the folders in patterns.toml to your layout (3.2).
 Add the arm-none-eabi include paths to .clang-tidy (3.4).
 HUMAN: set MCU, probe and SVD in .vscode/launch.json and tasks.json (3.5)." ;;
   rust|rust-embedded)
+    make_agents_md rust
     CLIPPY="$L/rust/clippy.toml"; VS="$V/rust/.vscode"
     [[ "$PROFILE" == rust-embedded ]] && { CLIPPY="$L/rust/embedded/clippy.toml"; VS="$V/rust-embedded/.vscode"; }
     PAIRS=(
       "$CLIPPY|clippy.toml" "$L/rust/rustfmt.toml|rustfmt.toml" "$L/rust/rust-toolchain.toml|rust-toolchain.toml"
       "$L/rust/patterns.toml|patterns.toml" "$L/rust/.pre-commit-config.yaml|.pre-commit-config.yaml"
-      "$L/rust/CLAUDE.md|CLAUDE.md" "$VS|.vscode")
+      "${AGENT_PAIRS[@]}" "$VS|.vscode")
     IGNORE=(target/)
     TODO="Merge $L/rust/Cargo-lints.toml into Cargo.toml, and add [lints] workspace = true to each crate (SETUP.md Phase 4.3).
 Set channel in rust-toolchain.toml to your current rustc version, and edition in rustfmt.toml to match your crates (4.2, 4.3)."
     [[ "$PROFILE" == rust-embedded ]] && TODO+="
 Set rust-analyzer.cargo.target in .vscode/settings.json; HUMAN: set chip and SVD in .vscode/launch.json (4.4)." ;;
-  python) PAIRS=(
-      "$L/python/.pre-commit-config.yaml|.pre-commit-config.yaml" "$L/python/CLAUDE.md|CLAUDE.md"
+  python) make_agents_md python; PAIRS=(
+      "$L/python/.pre-commit-config.yaml|.pre-commit-config.yaml" "${AGENT_PAIRS[@]}"
+      "$L/python/patterns.toml|patterns.toml"
       "$L/python/pyproject.toml|pyproject.toml" "$V/python/.vscode|.vscode")
     IGNORE=(.venv/)
     TODO="If pyproject.toml was skipped, merge [dependency-groups] and the [tool.*] sections from $L/python/pyproject.toml (SETUP.md Phase 5.2).
@@ -136,6 +143,11 @@ if [[ ${#skipped[@]} -gt 0 ]]; then
   printf '  %s\n' "${skipped[@]}"
 fi
 echo "Git hooks: $hooks"
+if [[ -f "$REPO/CLAUDE.md" ]] && ! grep -q '^@AGENTS.md' "$REPO/CLAUDE.md"; then
+  echo
+  echo "Your existing CLAUDE.md was kept. Add this as its first line so Claude Code reads AGENTS.md:"
+  echo "  @AGENTS.md"
+fi
 echo
 echo "Still to do:"
 while IFS= read -r line; do echo "  - $line"; done <<< "$TODO"

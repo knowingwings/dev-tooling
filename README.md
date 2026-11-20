@@ -2,7 +2,8 @@
 
 Lint rules, editor config and setup scripts for robotics repos: **ROS 2**, **embedded C/C++**,
 **Rust** (host and `no_std`) and **Python**. Every rule's error message says how to fix the problem,
-so a human or an agent can act on it without asking. The kit tests itself in CI.
+so a human or an agent can act on it without asking. Agent instructions live in `AGENTS.md`, so they
+work with any coding agent; `CLAUDE.md` just imports it. The kit tests itself in CI.
 
 ## Quick start
 
@@ -20,7 +21,8 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 | What | Where it lives | How projects get it |
 | --- | --- | --- |
 | Shared tools (pattern checker, clang-tidy runner) | `src/`, `lint/shared/` | pre-commit hooks pinned by tag: `rev: v0.1.0` in each project |
-| Per-project rules (`patterns.toml`, `.clang-tidy`, `clippy.toml`, `CLAUDE.md`...) | `lint/<profile>/` | copied once by `adopt.sh`, then owned and edited by the project |
+| Per-project rules (`patterns.toml`, `.clang-tidy`, `clippy.toml`...) | `lint/<profile>/` | copied once by `adopt.sh`, then owned and edited by the project |
+| Agent instructions: `AGENTS.md` (shared base + stack section), `CLAUDE.md` = `@AGENTS.md` | `lint/agents/`, `lint/<profile>/AGENTS.md` | generated once by `adopt.sh`, then owned by the project |
 | Editor config (`.vscode/`, ROS 2 dev container) | `vscode/<profile>/` | copied once by `adopt.sh` |
 | Your VS Code settings and extensions | `vscode/user/` | `install-machine.sh` symlinks settings, so `git pull` updates every machine |
 | Which kit version a project started from | `.robot-kit-version` in the project | written by `adopt.sh` |
@@ -30,7 +32,7 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 
 ## Changing the kit
 
-1. Edit the rule in `lint/<profile>/`.
+1. Edit the rule in `lint/<profile>/` (agent instructions: `lint/agents/base.md` for everything, `lint/<profile>/AGENTS.md` for one stack).
 2. Add a line that should trigger it to `tests/fixtures/<profile>/`.
 3. `python3 tests/run_tests.py --update`, then check `git diff tests/expected/` shows only the change you meant.
 4. `bash tests/test_adopt.sh` if you touched `adopt.sh` or the file layout.

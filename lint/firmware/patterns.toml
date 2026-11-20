@@ -49,3 +49,13 @@ include = ["**/*.c", "**/*.cpp"]
 exclude = ["Drivers/**", "third_party/**", "vendor/**"]
 message = """Blocking call inside an ISR/HAL callback. Set a flag or push to a queue, and do the work in the main loop or a task. \
 Use the _IT or _DMA HAL variants if you must start a transfer from here."""
+
+# ---- No new comments (check-comments hook) -----------------------------------------------------
+# Comments go stale and agents use them to justify workarounds: say it in a name, a type, a check,
+# a test or the commit message. For hardware facts the code can't express, cite the source:
+#   // REF(RM0090 10.3.2): DMA2 is the only controller that does memory-to-memory
+#   // REF(ES0182 erratum 2.1.8): delay after enabling the clock before touching the peripheral
+# Also allowed: doc comments, suppressions with a reason, licence headers. Only added lines are checked.
+[comments]
+enabled = true
+exclude = ["Drivers/**", "**/Drivers/**", "Middlewares/**", "third_party/**", "vendor/**", "build/**", "test/**", "tests/**", "**/startup_*.s", "**/system_*.c"]
