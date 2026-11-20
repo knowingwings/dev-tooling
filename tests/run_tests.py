@@ -29,6 +29,7 @@ KIT = Path(__file__).resolve().parent.parent
 FIX = KIT / "tests" / "fixtures"
 EXP = KIT / "tests" / "expected"
 LINT = KIT / "lint"
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 class SkipError(Exception):
@@ -225,12 +226,51 @@ def prof_typst(d: Path) -> Counter[str]:
     return typst_compile(d) + typstyle(d)
 
 
+def eslint(d: Path) -> Counter[str]:
+    out = run(["npx", "--no-install", "eslint", "-f", "json", "."], d)
+    hits: Counter[str] = Counter()
+    for f in json.loads(out[out.index("[") :]):
+        for m in f["messages"]:
+            hits[f"eslint:{m['ruleId']}"] += 1
+    return hits
+
+
+def prettier(d: Path) -> Counter[str]:
+    p = subprocess.run(
+        ["npx", "--no-install", "prettier", "--check", "."],
+        cwd=d,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    out = ANSI.sub("", p.stdout + p.stderr)
+    if p.returncode not in (0, 1) or re.search(r"^\[error\]", out, re.M):
+        raise RuntimeError(f"prettier failed (exit {p.returncode}):\n{out}")
+    return Counter(
+        {"prettier:unformatted": len(re.findall(r"^\[warn\] (?!Code style)", out, re.M))}
+    )
+
+
+def prof_astro(d: Path) -> Counter[str]:
+    for name in ("eslint.config.mjs", ".prettierrc.json", ".prettierignore"):
+        shutil.copy(LINT / "astro" / name, d)
+    need("npm")
+    subprocess.run(
+        ["npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", "--silent"],
+        cwd=d,
+        check=True,
+    )
+    git_init(d)
+    return eslint(d) + prettier(d)
+
+
 PROFILES = {
     "ros2": prof_ros2,
     "firmware": prof_firmware,
     "rust": prof_rust,
     "python": prof_python,
     "typst": prof_typst,
+    "astro": prof_astro,
 }
 
 

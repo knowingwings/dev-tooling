@@ -13,7 +13,7 @@ git clone git@github.com:knowingwings/dev-tooling.git ~/dev-tooling
 ~/dev-tooling/scripts/adopt.sh firmware ~/work/motor-board    # once per project
 ```
 
-Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`, `typst`. The full walkthrough, written so an
+Profiles: `ros2`, `firmware`, `rust`, `rust-embedded`, `python`, `typst`, `astro`. The full walkthrough, written so an
 agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 
 ## How it stays reproducible
@@ -50,8 +50,8 @@ an Evidence section in every PR. CI checks all of it.
 ## Layout
 
 ```
-lint/        agents/ github/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ shared/
-vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/ typst/
+lint/        agents/ github/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ astro/ shared/
+vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/ typst/ astro/
 src/         dev_tooling/  check (dev-check), check_patterns, check_comments, check_git (hooks + CI)
 scripts/     install-machine.sh  adopt.sh  as-agent
 tests/       fixtures/ expected/ run_tests.py test_adopt.sh

@@ -1,0 +1,43 @@
+# Settings for dev-tooling hooks in an Astro site.
+
+# ---- Git and PR conventions (check-branch hook, pr-checks workflow) -----------------------------
+# Defaults shown; uncomment to change.
+[git]
+# Let Low-risk, approved PRs merge themselves when green (.github/workflows/auto-merge.yml).
+# Needs branch protection with required status checks on main; Medium/High always wait for a person.
+automerge = true
+# protected_branches = ["main", "master"]
+
+# ---- dev-check: ./check runs these in order and prints one line each ------------------------------
+# The tools run from node_modules (npx --no-install), so `npm ci` first.
+[[check.step]]
+name = "hooks"
+run = "pre-commit run --files {changed}"
+
+[[check.step]]
+name = "eslint"
+run = "npx --no-install eslint --max-warnings=0 ."
+needs = ["npx"]
+summary = '(\d+ problems? \(\d+ errors?, \d+ warnings?\))'
+errors = '^\s+\d+:\d+\s+(error|warning)\s'
+
+[[check.step]]
+name = "prettier"
+run = "npx --no-install prettier --check ."
+needs = ["npx"]
+summary = '(Code style issues found in \d+ files?)'
+errors = '^\[(warn|error)\] (?!Code style issues)'
+
+[[check.step]]
+name = "astro-check"
+run = "npx --no-install astro check"
+needs = ["npx"]
+summary = '^- (\d+ errors?)'
+errors = ' - error '
+
+[[check.step]]
+name = "build"
+run = "npx --no-install astro build"
+needs = ["npx"]
+slow = true
+summary = '(\d+ page\(s\) built in [\d.]+m?s)'

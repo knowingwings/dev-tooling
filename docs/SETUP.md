@@ -28,7 +28,8 @@ for this repo with the firmware profile. Stop at every STOP (human) step."*
 | Docker | ROS 2 | docs.docker.com | `pacman -S docker docker-buildx`, `systemctl enable --now docker.socket` | Docker Desktop | Docker Desktop (WSL2 backend) |
 | Arm GNU toolchain, CMake, Ninja, OpenOCD | C/C++ firmware | `apt install cmake ninja-build openocd` + Arm toolchain | `pacman -S arm-none-eabi-gcc arm-none-eabi-newlib cmake ninja openocd` | `brew install --cask gcc-arm-embedded; brew install cmake ninja open-ocd` | Arm toolchain installer + `winget install Kitware.CMake Ninja-build.Ninja` |
 | rustup, probe-rs | Rust | rustup.rs, probe.rs | `pacman -S rustup`, probe-rs from probe.rs | rustup.rs, probe.rs | rustup.rs, probe.rs |
-| typst, typstyle | Typst docs | `cargo install typst-cli typstyle --locked` | `pacman -S typst`, `cargo install typstyle --locked` | `brew install typst typstyle` | `winget install Typst.Typst`, `cargo install typstyle --locked` |
+| typst, typstyle | Typst docs | `cargo install typst-cli typstyle --locked` | `pacman -S typst typstyle` | `brew install typst typstyle` | `winget install Typst.Typst`, `cargo install typstyle --locked` |
+| Node.js 22.13+ or 24+, and npm | Astro sites | nodejs.org (LTS; the apt package can be too old) | `pacman -S nodejs npm` | `brew install node` | `winget install OpenJS.NodeJS.LTS` |
 
 On Arch/Omarchy, use the Microsoft VS Code build. The open-source `code` package can't install
 Pylance, the C/C++ debugger, Remote-SSH or Dev Containers. On Arch, ROS 2 runs in the dev container.
@@ -78,6 +79,7 @@ cd <repo> && git switch -c dev-env-setup
 | `rust-embedded` | `no_std` firmware with probe-rs |
 | `python` | standalone Python: test rigs, HIL scripts, serial/CAN tools |
 | `typst` | Typst documents |
+| `astro` | Astro websites (TypeScript, MDX) |
 
 `adopt.sh` copies the profile's files, and it does not overwrite a file that exists. It builds
 `AGENTS.md` (the shared rules and this stack's section) and a `CLAUDE.md` that imports it. It pins
@@ -163,6 +165,20 @@ on an `rclcpp::` symbol works; `colcon test` results unchanged.
 
 **Verify:** `pre-commit run typst-compile --hook-stage pre-push --all-files` prints `ok <doc>` for
 each document; Tinymist preview opens with `Ctrl+K V`.
+
+### astro
+
+- Install the tools that the checks use, as dev dependencies. These versions work together:
+  `npm install --save-dev @astrojs/check typescript@~6.0 eslint@^10 @eslint/js@^10 typescript-eslint eslint-plugin-astro eslint-plugin-jsx-a11y-x prettier prettier-plugin-astro`.
+  Commit `package.json` and `package-lock.json`.
+- TypeScript stays on 6.0 until `typescript-eslint` supports a later version. `eslint-plugin-jsx-a11y-x`
+  is the maintained fork of `eslint-plugin-jsx-a11y` that supports ESLint 10.
+- On each machine, run `npm ci` before you commit, because the hooks run the tools from `node_modules`.
+- Existing code can fail `prettier --check`. Format it with `npx --no-install prettier --write .` in its
+  own commit.
+
+**Verify:** `./check --list` shows hooks, eslint, prettier, astro-check and build;
+`npx --no-install eslint .` and `npx --no-install astro check` run without a config error.
 
 ## GitHub conventions (each project)
 
@@ -325,6 +341,7 @@ how to fix it. Then `git restore --staged <file> && git checkout -- <file>`.
 | rust | `std::thread::sleep(std::time::Duration::from_millis(1));` | clippy `disallowed_methods` (run `cargo clippy`) |
 | python | `import os` then `os.system("ls")` | ruff `TID251` |
 | typst | `#set text(font: "Arial")` | typst-compile font failure (on push) |
+| astro (a page in `src/pages/`) | `<img src="/a.png" />` | eslint `astro/jsx-a11y/alt-text` |
 | any | commit on a branch named `my-changes`, then `git push` | `check-branch` asks for `<type>/<short-description>` |
 | any | `./check` on a clean checkout | one line per step, ending `N passed, 0 failed` |
 

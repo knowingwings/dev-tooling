@@ -43,6 +43,7 @@ except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore[no-redef]
 
 DEFAULT_ERRORS = r"(?i)\b(error|fail(ed|ure)?|panicked)\b"
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 EXCERPT_LINES = 8
 LOG_DIR = ".dev-check"
 
@@ -135,7 +136,7 @@ def run_step(step: Step, root: Path, changed: list[str]) -> Result:
         [*_shell(), cmd], cwd=root, capture_output=True, text=True, errors="replace", check=False
     )
     seconds = time.monotonic() - start
-    output = p.stdout + p.stderr
+    output = ANSI.sub("", p.stdout + p.stderr)
     log = root / LOG_DIR / f"{step.name}.log"
     log.parent.mkdir(exist_ok=True)
     log.write_text(f"$ {step.run}\n\n{output}")

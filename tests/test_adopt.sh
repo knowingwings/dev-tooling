@@ -9,7 +9,7 @@ fail=0
 EXPECTED_REV="$(git -C "$KIT" describe --tags --abbrev=0 2>/dev/null || git -C "$KIT" rev-parse HEAD)"
 check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 
-for profile in ros2 firmware rust rust-embedded python typst; do
+for profile in ros2 firmware rust rust-embedded python typst astro; do
   echo "== $profile"
   R="$TMP/$profile"; mkdir -p "$R"; git -C "$R" init -q
   git -C "$R" remote add origin git@github.com:someone/$profile-repo.git
@@ -20,7 +20,7 @@ for profile in ros2 firmware rust rust-embedded python typst; do
   check "existing CLAUDE.md kept"            '[[ "$(cat "$R/CLAUDE.md")" == "# my own notes" ]]'
   check "skip reported"                      'grep -q "CLAUDE.md" <<< "$(sed -n "/Skipped/,/Git hooks/p" <<< "$out")"'
   check "AGENTS.md has shared base"          'grep -q "^## Comments" "$R/AGENTS.md" && grep -q "^## Hardware safety" "$R/AGENTS.md"'
-  check "AGENTS.md has stack section"        'grep -qE "^## (ROS 2|Embedded C/C\+\+ firmware|Rust|Python|Typst documents) \(this repo\)" "$R/AGENTS.md"'
+  check "AGENTS.md has stack section"        'grep -qE "^## (ROS 2|Embedded C/C\+\+ firmware|Rust|Python|Typst documents|Astro site) \(this repo\)" "$R/AGENTS.md"'
   check "import hint for kept CLAUDE.md"     'grep -q "^  @AGENTS.md" <<< "$out"'
   check ".dev-tooling-version written"         'grep -q "^profile=$profile$" "$R/.dev-tooling-version"'
   check ".vscode copied"                     '[[ -f "$R/.vscode/settings.json" ]]'
@@ -51,6 +51,8 @@ done
 case "$(ls "$TMP/ros2/.devcontainer" 2>/dev/null)" in *Dockerfile*) echo "  ok   ros2 devcontainer copied";; *) echo "  FAIL ros2 devcontainer"; fail=1;; esac
 [[ -f "$TMP/firmware/cmake/warnings.cmake" ]] && echo "  ok   firmware warnings.cmake in cmake/" || { echo "  FAIL firmware warnings.cmake"; fail=1; }
 grep -q "disallowed-macros" "$TMP/rust-embedded/clippy.toml" && echo "  ok   rust-embedded uses embedded clippy.toml" || { echo "  FAIL rust-embedded clippy.toml"; fail=1; }
+[[ -f "$TMP/astro/eslint.config.mjs" && -f "$TMP/astro/.prettierrc.json" ]] && echo "  ok   astro ESLint and Prettier configs copied" || { echo "  FAIL astro configs"; fail=1; }
+grep -qx "node_modules/" "$TMP/astro/.gitignore" && echo "  ok   astro ignores node_modules/" || { echo "  FAIL astro .gitignore"; fail=1; }
 echo "== fresh repo gets CLAUDE.md importing AGENTS.md"
 F="$TMP/fresh"; mkdir -p "$F"; git -C "$F" init -q
 "$KIT/scripts/adopt.sh" firmware "$F" >/dev/null 2>&1

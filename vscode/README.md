@@ -1,4 +1,4 @@
-# VS Code setup: ROS 2, firmware (C/C++ and Rust), Python: same at work and home
+# VS Code setup: ROS 2, firmware (C/C++ and Rust), Python, Typst, Astro: same at work and home
 
 Three layers, each synced a different way:
 
@@ -53,6 +53,10 @@ and their errors appear in the Problems panel (`Ctrl+Shift+M`) and inline via Er
 **Python project:** copy `python/.vscode/` and the lint kit's `python/pyproject.toml`, then `uv sync`.
 - The Testing sidebar runs pytest, and hardware tests are deselected unless you run the "HARDWARE tests" task.
 - The interpreter is the project's `.venv` automatically, so there's no "select interpreter" dance.
+
+**Astro site:** `adopt.sh astro` copies `astro/.vscode/`. Install the recommended extensions (Astro,
+ESLint, Prettier) when VS Code asks. Prettier formats on save and ESLint shows problems inline, with
+the same configs as the hooks.
 
 ## 3. Using Claude Code in this setup
 
