@@ -55,4 +55,8 @@ echo "== fresh repo gets CLAUDE.md importing AGENTS.md"
 F="$TMP/fresh"; mkdir -p "$F"; git -C "$F" init -q
 "$KIT/scripts/adopt.sh" firmware "$F" >/dev/null 2>&1
 check "CLAUDE.md starts with @AGENTS.md"   '[[ "$(head -1 "$F/CLAUDE.md")" == "@AGENTS.md" ]]'
+echo "== typst-compile with no entry documents needs no typst"
+mkdir -p "$TMP/fakebin"; printf '#!/bin/sh\nexit 99\n' > "$TMP/fakebin/typst"; chmod +x "$TMP/fakebin/typst"
+printf '# no documents yet\n' > "$TMP/typst/.typst-entries"
+check "exits 0 before it calls typst"       '(cd "$TMP/typst" && PATH="$TMP/fakebin:$PATH" bash "$KIT/lint/shared/typst_compile.sh" | grep -q "no entry documents")'
 exit $fail

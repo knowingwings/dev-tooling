@@ -16,6 +16,8 @@
 - `./check`: `{changed}` compares with the remote's default branch (`origin/HEAD`), not always
   `origin/main`. In a repo whose default branch is `master`, the hooks step skipped with "nothing
   changed". Set `[check] base` to choose another branch.
+- `typst-compile`: a repo with no entry documents passes without Typst installed. Before, `git push`
+  failed with "typst not found" in a repo that had no Typst documents.
 
 ## v0.3.0 (2026-11-20)
 
