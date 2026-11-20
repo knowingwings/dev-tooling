@@ -9,6 +9,7 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 fail=0
 check() { if eval "$2"; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
 
+PY="$(command -v python3 || command -v python)"
 export DEV_TOOLING_AGENTS_DIR="$TMP/agents" XDG_CACHE_HOME="$TMP/cache"
 mkdir -p "$DEV_TOOLING_AGENTS_DIR"
 openssl genrsa -out "$DEV_TOOLING_AGENTS_DIR/builder.pem" 2048 2>/dev/null
@@ -23,7 +24,7 @@ pad() { local x="$1"; while (( ${#x} % 4 )); do x+="="; done; printf '%s' "$x" |
 payload="$(pad "$p" | openssl base64 -d -A)"
 check "header is RS256"                    '[[ "$(pad "$h" | openssl base64 -d -A)" == "{\"alg\":\"RS256\",\"typ\":\"JWT\"}" ]]'
 check "issuer is the client id"            'grep -q "\"iss\":\"Iv23.testclient\"" <<< "$payload"'
-check "expires within 10 minutes"          'python3 -c "import json,sys,time; d=json.loads(sys.argv[1]); assert 0 < d[\"exp\"]-time.time() <= 600" "$payload"'
+check "expires within 10 minutes"          '"$PY" -c "import json,sys,time; d=json.loads(sys.argv[1]); assert 0 < d[\"exp\"]-time.time() <= 600" "$payload"'
 pad "$s" | openssl base64 -d -A > "$TMP/sig.bin"
 check "signature verifies with public key" 'printf "%s.%s" "$h" "$p" | openssl dgst -sha256 -verify "$TMP/builder.pub" -signature "$TMP/sig.bin" >/dev/null'
 
@@ -68,4 +69,28 @@ check "push credential is the App token"   'grep -qx "password=fake-token-123" <
 check "whoami"                             '"$AS" whoami builder | grep -q "^kw-builder\[bot\]"'
 unknown_out="$("$AS" nobody true 2>&1 || true)"
 check "unknown role fails clearly"         '! "$AS" nobody true 2>/dev/null && grep -q "no .*nobody.env" <<< "$unknown_out"'
+
+echo "== Python detection"
+STUB="$TMP/stubbin"; mkdir -p "$STUB"
+cat > "$STUB/python3" <<'SH'
+#!/usr/bin/env bash
+echo "Python was not found; run without arguments to install from the Microsoft Store" >&2
+exit 9009
+SH
+cat > "$STUB/python" <<SH
+#!/usr/bin/env bash
+exec "$PY" "\$@"
+SH
+cat > "$STUB/curl" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *"/users/"*) echo '{"id": 777}' ;;
+  *) echo '{"slug": "kw-stub"}' ;;
+esac
+SH
+chmod +x "$STUB"/*
+cp "$DEV_TOOLING_AGENTS_DIR/builder.pem" "$DEV_TOOLING_AGENTS_DIR/stub.pem"
+printf 'CLIENT_ID=Iv23.stub\n' > "$DEV_TOOLING_AGENTS_DIR/stub.env"
+stub_out="$(PATH="$STUB:$PATH" "$AS" setup stub 2>&1 || true)"
+check "skips a python3 that doesn't run"   'grep -q "stub acts as kw-stub\[bot\] (id 777)" <<< "$stub_out"'
 exit $fail

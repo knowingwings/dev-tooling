@@ -25,7 +25,16 @@ set -euo pipefail
 DIR="${DEV_TOOLING_AGENTS_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/dev-tooling/agents}"
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/dev-tooling"
 API="${GITHUB_API_URL:-https://api.github.com}"
-PY="$(command -v python3 || command -v python || true)"
+# First interpreter that really runs Python 3.8+. On Windows, python3/python can be Microsoft Store
+# stubs that only print "Python was not found", so test each one instead of trusting command -v.
+find_python() {
+  local c
+  for c in python3 python py; do
+    command -v "$c" >/dev/null 2>&1 || continue
+    "$c" -c 'import sys; sys.exit(sys.version_info < (3, 8))' >/dev/null 2>&1 && { printf '%s' "$c"; return; }
+  done
+}
+PY="$(find_python)"
 
 die() { echo "as-agent: $*" >&2; exit 1; }
 json() { [[ -n "$PY" ]] || die "needs python3 to read API responses"; "$PY" -c "import json,sys; print(json.load(sys.stdin)$1)"; }

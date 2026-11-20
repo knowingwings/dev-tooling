@@ -33,6 +33,8 @@
 
 **Fixes**
 - `adopt.sh` exited silently in a repo with no `origin` remote.
+- `as-agent` picked the Windows Store `python3` stub ("Python was not found") and failed with a
+  misleading "GitHub rejected the JWT". It now uses the first `python3`, `python` or `py` that runs.
 
 ## v0.1.0 (2026-11-20)
 
