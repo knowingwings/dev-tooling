@@ -1,9 +1,11 @@
 ## Typst documents (this repo)
 
 ### Checks to run
-1. `typstyle -i <changed .typ files>`
-2. `pre-commit run typst-compile --hook-stage pre-push --all-files`: compiles every document in
-   `.typst-entries` to `build/` with the pinned Typst and no system fonts. Report any warnings.
+- `./check` runs every check (hooks, compile) and prints one line per step, with the failing lines
+  and a log path when something fails. Paste its summary into the PR's Evidence section.
+- `./check --quick` skips the slow steps while you iterate; run the full `./check` before you say
+  you're done. `./check --list` shows exactly what runs.
+- Documents compile with the pinned Typst and no system fonts; report any warnings.
 
 ### Conventions
 - The Typst version is pinned in `.typst-version`. Don't upgrade it as part of another change.

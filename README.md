@@ -24,6 +24,8 @@ agent can follow it too, is [docs/SETUP.md](docs/SETUP.md).
 | Per-project rules (`patterns.toml`, `.clang-tidy`, `clippy.toml`...) | `lint/<profile>/` | copied once by `adopt.sh`, then owned and edited by the project |
 | Agent instructions: `AGENTS.md` (shared base + stack section), `CLAUDE.md` = `@AGENTS.md` | `lint/agents/`, `lint/<profile>/AGENTS.md` | generated once by `adopt.sh`, then owned by the project |
 | GitHub conventions: PR and issue templates, CODEOWNERS, `pr-checks` workflow, feature map | `lint/github/`, `lint/agents/FEATURE_MAP.md` | copied once by `adopt.sh` for every profile |
+| One-command checks: `./check` (runs `dev-check`, steps in `[[check.step]]`) | `src/dev_tooling/check.py`, `lint/shared/check` | `./check` copied by `adopt.sh`, pinned to the kit version |
+| Agent roles: architect, builder, reviewer, publisher (GitHub Apps), `as-agent`, auto-merge | `lint/agents/roles/`, `scripts/as-agent`, `lint/github/.github/workflows/auto-merge.yml` | role docs + Claude subagents copied by `adopt.sh`; Apps created once (docs/SETUP.md) |
 | Editor config (`.vscode/`, ROS 2 dev container) | `vscode/<profile>/` | copied once by `adopt.sh` |
 | Your VS Code settings and extensions | `vscode/user/` | `install-machine.sh` symlinks settings, so `git pull` updates every machine |
 | Which kit version a project started from | `.dev-tooling-version` in the project | written by `adopt.sh` |
@@ -49,8 +51,8 @@ an Evidence section in every PR. CI checks all of it.
 ```
 lint/        agents/ github/ ros2/ firmware/ rust/ (+ rust/embedded/) python/ typst/ shared/
 vscode/      user/ ros2/ firmware/ rust/ rust-embedded/ python/ typst/
-src/         dev_tooling/  check_patterns, check_comments, check_git (the hooks and CI checks)
-scripts/     install-machine.sh  adopt.sh
+src/         dev_tooling/  check (dev-check), check_patterns, check_comments, check_git (hooks + CI)
+scripts/     install-machine.sh  adopt.sh  as-agent
 tests/       fixtures/ expected/ run_tests.py test_adopt.sh
 docs/        SETUP.md
 ```

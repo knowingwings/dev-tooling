@@ -4,8 +4,8 @@ These instructions are for any coding agent (Claude Code, Cursor, Codex...) and 
 Shared rules come first; the section for this repo's stack follows.
 
 ## Before you say a change is done
-- Run every check listed for this stack below and put a short summary of each result in your final
-  message: the command, pass/fail, and any numbers it reports. Evidence first, then the diff.
+- Run `./check` (every check for this stack, one summary line each) and put its summary in your final
+  message and the PR's Evidence section. Evidence first, then the diff.
 - If a check fails and you can't fix it, say so plainly. Don't claim it passed.
 
 ## Verification
@@ -46,6 +46,22 @@ suppressions with a reason, and licence headers.
 Never flash a board, change option bytes or fuses, open a serial/CAN port to a device, or run anything
 that commands real actuators (motors, arms, grippers), unless the person you're working for asks in
 this session. Verify with simulation, bag replay, host tests or fakes instead.
+
+## Agent roles
+Work is split between four roles, each a GitHub App owned by the repo owner, so every PR, review and
+commit shows which role did it. Each role's full instructions are in `docs/agents/<role>.md` (Claude Code
+also has them as subagents in `.claude/agents/`).
+- **architect**: goals → Task issues with acceptance criteria and proof expected; keeps the feature map
+  current. No production code.
+- **builder**: one Task per branch → PR with evidence. Never approves or merges.
+- **reviewer**: fresh eyes. Re-runs `./check` and the feature-map checks, judges evidence and Risk,
+  approves or requests changes. Never edits code.
+- **publisher**: low-risk approved PRs merge themselves; summarises Medium/High for the owner; releases;
+  turns repeated review findings into Agent mistake → check issues.
+
+Run GitHub-facing commands as your role: `as-agent <role> git push ...`, `as-agent <role> gh pr ...`.
+Commits made through `as-agent` carry the owner as `Co-authored-by`, and bot PRs must include
+`Requested-by: @<person>`. If `as-agent` isn't set up, say so and work as the person you're helping.
 
 ## Git and pull requests
 These are checked by hooks and CI, so getting them right first time saves a round trip.

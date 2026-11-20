@@ -1,11 +1,11 @@
 ## Rust (this repo)
 
 ### Checks to run
-1. `cargo fmt --all`
-2. `cargo clippy --workspace --all-targets -- -D warnings`
-3. `cargo test --workspace`
-4. Firmware crates: `cargo build --release`, and report `cargo size --release` (text/data/bss) before
-   and after your change.
+- `./check` runs every check (hooks, fmt, clippy, test) and prints one line per step, with the failing lines
+  and a log path when something fails. Paste its summary into the PR's Evidence section.
+- `./check --quick` skips the slow steps while you iterate; run the full `./check` before you say
+  you're done. `./check --list` shows exactly what runs.
+- Firmware crates: also report `cargo size --release` (text/data/bss) before and after.
 
 ### Conventions
 - No `unwrap()`. Propagate errors with `?`, or handle them.

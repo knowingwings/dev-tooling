@@ -33,6 +33,9 @@ else
 fi
 command -v typstyle >/dev/null || echo "     typstyle: cargo install typstyle --locked  (or brew install typstyle)"
 
+mkdir -p "$HOME/.local/bin" && ln -sf "$KIT/scripts/as-agent" "$HOME/.local/bin/as-agent"
+echo "   as-agent linked into ~/.local/bin (agent roles: docs/SETUP.md, Agent roles)"
+
 echo "== 2. VS Code extensions"
 if command -v "$CODE" >/dev/null; then
   CODE="$CODE" bash "$KIT/vscode/user/install-extensions.sh" | grep -E '^\[' | cut -d' ' -f1 | sort | uniq -c \

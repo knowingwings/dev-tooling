@@ -1,0 +1,78 @@
+# Lets low-risk pull requests merge themselves once every required check passes.
+# Eligible only if ALL hold (decided by dev-tooling's check-automerge, rules in patterns.toml [git]):
+#   - [git] automerge = true
+#   - the PR's Risk box is Low
+#   - someone other than the author approved (e.g. the reviewer agent), and nobody requested changes
+#   - it doesn't change the checks themselves (lint configs, AGENTS.md, .github/): a human reviews those
+#   - no do-not-merge / needs-human / hold label
+#   - the base branch has protection with required status checks (otherwise this does nothing,
+#     so "merge when green" can't turn into "merge now")
+# Anything else stays open for a person. If a PR stops being eligible (risk raised, changes
+# requested, hold label added), auto-merge is switched off again.
+#
+# Uses the publisher agent's GitHub App token when PUBLISHER_CLIENT_ID (variable) and
+# PUBLISHER_PRIVATE_KEY (secret) are set, so merges show as the publisher bot and trigger the
+# workflows that run on main. Falls back to the workflow token otherwise.
+name: auto-merge
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  decide:
+    if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev-tooling checks
+        env:
+          KIT_REV: v0.1.0   # adopt.sh sets this to the kit version you adopted
+        run: pip install --quiet "git+https://github.com/knowingwings/dev-tooling@${KIT_REV}"
+
+      - name: Publisher agent token
+        id: publisher
+        if: vars.PUBLISHER_CLIENT_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PUBLISHER_CLIENT_ID }}
+          private-key: ${{ secrets.PUBLISHER_PRIVATE_KEY }}
+
+      - name: Decide, then enable or disable auto-merge
+        env:
+          GH_TOKEN: ${{ steps.publisher.outputs.token || github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if ! gh api "repos/$REPO/branches/$PR_BASE_REF/protection/required_status_checks" >/dev/null 2>&1; then
+            echo "::notice::Auto-merge needs branch protection with required status checks on $PR_BASE_REF. Skipping."
+            exit 0
+          fi
+          PR_LABELS="$(gh pr view "$PR" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")')"
+          PR_REVIEWS_JSON="$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '[.[] | {user: {login: .user.login}, state: .state}]' | jq -s add)"
+          export PR_LABELS PR_REVIEWS_JSON
+          if check-automerge; then
+            gh pr merge "$PR" --repo "$REPO" --auto --squash
+          else
+            gh pr merge "$PR" --repo "$REPO" --disable-auto 2>/dev/null || true
+          fi

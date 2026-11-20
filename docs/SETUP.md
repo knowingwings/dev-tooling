@@ -22,6 +22,8 @@ for this repo with the firmware profile. Stop at every STOP (human) step."*
 | --- | --- | --- | --- | --- | --- |
 | git, Python 3.10+ | everything | `apt install git python3` | `pacman -S git python` | `brew install git python` | Git for Windows (gives Git Bash) + python.org |
 | uv | lint tools | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `pacman -S uv` | `brew install uv` | `winget install astral-sh.uv` |
+| 1Password CLI `op` (optional) | agent App keys | 1password.com/downloads/command-line | `yay -S 1password-cli` (AUR) | `brew install --cask 1password-cli` | `winget install AgileBits.1Password.CLI` |
+| GitHub CLI `gh` | PRs, agent roles | `apt install gh` | `pacman -S github-cli` | `brew install gh` | `winget install GitHub.cli` |
 | VS Code (Microsoft build) | editor | .deb from code.visualstudio.com | `yay -S visual-studio-code-bin` (not the `code` OSS package) | `brew install --cask visual-studio-code` | `winget install Microsoft.VisualStudioCode` |
 | Docker | ROS 2 | docs.docker.com | `pacman -S docker docker-buildx`, `systemctl enable --now docker.socket` | Docker Desktop | Docker Desktop (WSL2 backend) |
 | Arm GNU toolchain, CMake, Ninja, OpenOCD | C/C++ firmware | `apt install cmake ninja-build openocd` + Arm toolchain | `pacman -S arm-none-eabi-gcc arm-none-eabi-newlib cmake ninja openocd` | `brew install --cask gcc-arm-embedded; brew install cmake ninja open-ocd` | Arm toolchain installer + `winget install Kitware.CMake Ninja-build.Ninja` |
@@ -182,6 +184,100 @@ It's what agents run to produce PR evidence, and what you check that evidence ag
 When an agent gets something wrong twice, open an **Agent mistake → check** issue and turn it into a
 rule (here, or in dev-tooling if every project should get it).
 
+## One command: `./check`
+
+Every project gets a `./check` script that runs all of its checks and prints one line per step, with
+the failing lines and a log path when something fails:
+
+```
+PASS  hooks            2.1s
+FAIL  clippy           0.9s  14 error line(s)
+      error: used `unwrap()` on a `Result` value
+         --> crates/app/src/main.rs:23:13
+      ... 12 more
+      full log: .dev-check/clippy.log
+PASS  test             4.2s  ok. 31 passed; 0 failed
+```
+
+`./check --quick` skips slow steps, `./check --list` shows them, `./check --only test` runs one. The
+steps live in `[[check.step]]` tables in `patterns.toml`, so a project can add its own (a sim smoke
+test, a bag replay). `./check` runs the dev-tooling version the project adopted (it needs `uv`), so
+results match on every machine. Agents paste its summary into the PR's Evidence section.
+
+## Agent roles (GitHub Apps)
+
+Four roles, each a GitHub App you own: **architect**, **builder**, **reviewer** and **publisher**
+(full instructions in each project's `docs/agents/`, and as Claude Code subagents in
+`.claude/agents/`). Apps are free, use short-lived tokens with only the permissions they need, and
+show up as `<name>[bot]` on every PR, review and commit. A reviewer App's approval counts toward
+"required approvals"; Apps can't be code owners, so changes to the checks always need you.
+
+**STOP (human), once per role** (about 5 minutes each):
+
+1. GitHub > Settings > Developer settings > GitHub Apps > **New GitHub App**.
+   - Name: `<you>-<role>` (e.g. `knowingwings-reviewer`); homepage: your profile URL.
+   - Webhook: untick **Active**.
+   - Repository permissions (everything else: No access):
+
+     | Role | Contents | Pull requests | Issues | Administration | Checks |
+     | --- | --- | --- | --- | --- | --- |
+     | architect | Read | Read | Read and write | | |
+     | builder | Read and write | Read and write | Read | | Read |
+     | reviewer | Read | Read and write | Read and write | | Read |
+     | publisher | Read and write | Read and write | Read and write | Read | Read |
+
+   - Where can it be installed: **Only on this account**. Create.
+2. Copy the **Client ID**, then **Generate a private key**.
+3. Store the key. **Recommended: 1Password.** Nothing sits on disk, and every machine gets the same keys:
+   - In 1Password, create an item named `<you>-<role>` (e.g. in a `Dev` vault), add a text field
+     `client_id` with the Client ID, and attach the downloaded key file renamed to `private-key.pem`.
+     Then delete the download.
+   - On each machine that runs agents (needs the 1Password CLI, `op`, signed in):
+     ```bash
+     mkdir -p ~/.config/dev-tooling/agents && cd ~/.config/dev-tooling/agents
+     printf 'CLIENT_ID=op://Dev/<you>-<role>/client_id\nKEY=op://Dev/<you>-<role>/private-key.pem\n' > <role>.env
+     ```
+     `as-agent` reads the key through `op` only when it needs a fresh token (about once an hour per
+     repo), signs with it, and deletes it straight away. Set `DEV_TOOLING_NO_TOKEN_CACHE=1` to keep
+     even the 1-hour tokens off disk, at the cost of unlocking 1Password more often.
+
+   **Or as a file** (no 1Password):
+   ```bash
+   mkdir -p ~/.config/dev-tooling/agents && cd ~/.config/dev-tooling/agents
+   mv ~/Downloads/<app-name>.*.private-key.pem <role>.pem && chmod 600 <role>.pem
+   echo 'CLIENT_ID=<client id>' > <role>.env
+   ```
+4. App page > **Install App** > your account > choose the repositories.
+5. `as-agent setup <role>`: looks up the bot identity and saves it.
+
+Once, for attribution: create `~/.config/dev-tooling/agents/owner.env` with
+`OWNER_NAME="Your Name"` and `OWNER_EMAIL="<id>+<login>@users.noreply.github.com"` (GitHub > Settings
+> Emails shows your noreply address). Every commit made through `as-agent` then carries
+`Co-authored-by: you`, and CI requires `Requested-by: @you` on PRs opened by a bot.
+
+**Verify:** `as-agent whoami reviewer` prints `<you>-reviewer[bot]`, and in a project
+`as-agent reviewer gh api user` fails while `as-agent reviewer gh pr list` works (Apps aren't users).
+
+## Auto-merge
+
+Low-risk pull requests merge themselves once every required check passes, if all of these hold: the
+Risk box is **Low**; someone other than the author approved (the reviewer bot counts) and nobody
+requested changes; it doesn't change the checks themselves; and there's no `do-not-merge`,
+`needs-human` or `hold` label. Medium and High always wait for you.
+
+**STOP (human), once per repo:**
+1. Settings > General > Pull Requests: tick **Allow auto-merge**, **Allow squash merging** and
+   **Automatically delete head branches**.
+2. Settings > Branches > rule for `main`: require a pull request with **1 approval**, **dismiss stale
+   approvals**, **require review from Code Owners**, and **require status checks** (`pr-checks` and
+   your CI). The workflow does nothing until required checks exist, so "merge when green" can never
+   become "merge now".
+3. Settings > Secrets and variables > Actions: variable `PUBLISHER_CLIENT_ID` and secret
+   `PUBLISHER_PRIVATE_KEY` (the publisher App's key). Merges then show as the publisher bot and
+   trigger workflows on `main`; without them the workflow token is used and they don't.
+
+Turn it off per repo with `automerge = false` in the `[git]` table of `patterns.toml`.
+
 ## Phase 3: Smoke test (each project)
 
 Add one deliberately bad line, try to commit, and check the commit is blocked with a message that says
@@ -196,6 +292,7 @@ how to fix it. Then `git restore --staged <file> && git checkout -- <file>`.
 | python | `import os` then `os.system("ls")` | ruff `TID251` |
 | typst | `#set text(font: "Arial")` | typst-compile font failure (on push) |
 | any | commit on a branch named `my-changes`, then `git push` | `check-branch` asks for `<type>/<short-description>` |
+| any | `./check` on a clean checkout | one line per step, ending `N passed, 0 failed` |
 
 ## Updating a project to a newer kit
 

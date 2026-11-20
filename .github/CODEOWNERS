@@ -4,6 +4,8 @@
 /.github/                   @knowingwings
 /AGENTS.md                  @knowingwings
 /CLAUDE.md                  @knowingwings
+/.claude/                   @knowingwings
+/docs/agents/               @knowingwings
 /.pre-commit-config.yaml    @knowingwings
 /patterns.toml              @knowingwings
 /.clang-tidy                @knowingwings
@@ -18,3 +20,4 @@
 /lint/                      @knowingwings
 /src/                       @knowingwings
 /tests/expected/            @knowingwings
+/scripts/as-agent           @knowingwings

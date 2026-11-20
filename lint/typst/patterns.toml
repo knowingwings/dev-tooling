@@ -4,6 +4,20 @@
 # Defaults shown; uncomment to change. For a docs-only repo you may not want evidence and risk on
 # every PR: set them to false.
 [git]
+# Let Low-risk, approved PRs merge themselves when green (.github/workflows/auto-merge.yml).
+# Needs branch protection with required status checks on main; Medium/High always wait for a person.
+automerge = true
 # protected_branches = ["main", "master"]
 # require_evidence = true
 # require_risk = true
+
+# ---- dev-check: ./check runs these in order and prints one line each ------------------------------
+[[check.step]]
+name = "hooks"
+run = "pre-commit run --files {changed}"
+
+[[check.step]]
+name = "compile"
+run = "pre-commit run typst-compile --hook-stage pre-push --all-files"
+needs = ["typst"]
+errors = '^(error|FAIL|warning)'

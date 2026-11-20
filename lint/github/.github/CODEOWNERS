@@ -4,6 +4,8 @@
 /.github/                   @OWNER
 /AGENTS.md                  @OWNER
 /CLAUDE.md                  @OWNER
+/.claude/                   @OWNER
+/docs/agents/               @OWNER
 /.pre-commit-config.yaml    @OWNER
 /patterns.toml              @OWNER
 /.clang-tidy                @OWNER
