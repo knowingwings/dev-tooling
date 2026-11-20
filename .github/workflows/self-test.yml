@@ -16,6 +16,7 @@ env:
   TYPST_VERSION: "0.15.1"     # keep in step with lint/typst/.typst-version
   TYPSTYLE_VERSION: "0.15.3"
   TYPOS_VERSION: "1.52.2"     # keep in step with the typos rev in lint/*/.pre-commit-config.yaml
+  NODE_VERSION: "24"          # astro profile fixtures (tools pinned in tests/fixtures/astro/package.json)
 
 jobs:
   rules:
@@ -47,6 +48,11 @@ jobs:
           cargo install typstyle --locked --version "${TYPSTYLE_VERSION}"
           typst --version && typstyle --version | head -1
           test "$(cat lint/typst/.typst-version)" = "${TYPST_VERSION}"
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Kit's own code passes its own rules
         run: |
