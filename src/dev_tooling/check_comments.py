@@ -13,7 +13,10 @@ message. Allowed forms:
 
 Configured by an optional [comments] table in patterns.toml (see the profiles in lint/). By default
 only comments on lines added in the staged change are checked, so existing code doesn't fail when
-touched.
+touched. A comment that was moved, re-indented or re-wrapped isn't new either: an added comment
+passes when its words are a run of words from comments that the same change removed from the file.
+Each removed word excuses one added word, so a copied comment, or one with any word added or
+changed, is still new.
 
     check-comments [files...]            # pre-commit: staged files, staged additions only
     check-comments --base origin/main    # CI: lines added since a base ref
@@ -278,18 +281,96 @@ def _git() -> str:
     return git
 
 
-def added_lines(root: Path, rel: str, base: str | None) -> set[int] | None:
-    """Lines added in the staged change (or since `base`). None = not in git: treat all as new."""
+def changed_lines(root: Path, rel: str, base: str | None) -> tuple[set[int], set[int]] | None:
+    """Lines added (new numbering) and removed (old numbering) in the staged change or since `base`.
+
+    None when the file isn't in git: treat every line as new.
+    """
     args = [_git(), "diff", "--no-color", "--unified=0"]
     args += [f"{base}...HEAD", "--"] if base else ["--cached", "--"]
     p = subprocess.run([*args, rel], cwd=root, capture_output=True, text=True, check=False)
     if p.returncode != 0:
         return None
-    lines: set[int] = set()
-    for m in re.finditer(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", p.stdout, re.M):
-        start, count = int(m.group(1)), int(m.group(2) or "1")
-        lines.update(range(start, start + count))
-    return lines
+    added: set[int] = set()
+    removed: set[int] = set()
+    for m in re.finditer(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", p.stdout, re.M):
+        old_start, old_count = int(m.group(1)), int(m.group(2) or "1")
+        start, count = int(m.group(3)), int(m.group(4) or "1")
+        removed.update(range(old_start, old_start + old_count))
+        added.update(range(start, start + count))
+    return added, removed
+
+
+def added_lines(root: Path, rel: str, base: str | None) -> set[int] | None:
+    """Lines added in the staged change (or since `base`). None = not in git: treat all as new."""
+    lines = changed_lines(root, rel, base)
+    return None if lines is None else lines[0]
+
+
+def old_text(root: Path, rel: str, base: str | None) -> str | None:
+    """The file before the change: at the merge base with `base`, or at HEAD for a staged change."""
+    rev = "HEAD"
+    if base:
+        mb = subprocess.run(
+            [_git(), "merge-base", base, "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if mb.returncode != 0:
+            return None
+        rev = mb.stdout.strip()
+    p = subprocess.run(
+        [_git(), "show", f"{rev}:{rel}"], cwd=root, capture_output=True, text=True, check=False
+    )
+    return p.stdout if p.returncode == 0 else None
+
+
+def comment_words(text: str) -> list[str]:
+    """The words of a comment without its markers (#, //, /* */, a leading * on each line)."""
+    body = re.sub(r"\*+/\s*$", "", re.sub(r"^(#+|//+!?|/\*+!?)", "", text))
+    lines = [re.sub(r"^\s*(\*+|#+|//+!?)?", "", ln) for ln in body.splitlines()]
+    return " ".join(lines).split()
+
+
+class RemovedComments:
+    """The words of the comments that a change removed from a file, in their old order.
+
+    An added comment made of a run of these words was moved, re-indented or re-wrapped, so it isn't
+    new. take() uses up the words it matches: each removed word excuses one added word only.
+    """
+
+    def __init__(self, old: list[Comment], removed_lines: set[int]) -> None:
+        self.words: list[str | None] = []
+        self.empty = 0
+        last = -1
+        for c in old:
+            if not any(ln in removed_lines for ln in range(c.line, c.end_line + 1)):
+                continue
+            words = comment_words(c.text)
+            if not words:
+                self.empty += 1
+                continue
+            if self.words and c.line > last + 1:
+                self.words.append(None)
+            self.words.extend(words)
+            last = c.end_line
+        self.used = [False] * len(self.words)
+
+    def take(self, words: list[str]) -> bool:
+        """True, and the words are used up, when they're an unused run of the removed words."""
+        if not words:
+            if self.empty:
+                self.empty -= 1
+                return True
+            return False
+        n = len(words)
+        for i in range(len(self.words) - n + 1):
+            if self.words[i : i + n] == words and not any(self.used[i : i + n]):
+                self.used[i : i + n] = [True] * n
+                return True
+        return False
 
 
 def tracked_files(root: Path) -> list[str]:
@@ -328,11 +409,19 @@ def main() -> int:
         found = comments_in(path, path.read_text(errors="replace"))
         if not found:
             continue
-        new = added_lines(root, rel, args.base) if only_new else None
+        changed = changed_lines(root, rel, args.base) if only_new else None
+        removed: RemovedComments | None = None
         for c in found:
-            if new is not None and not any(ln in new for ln in range(c.line, c.end_line + 1)):
+            span = range(c.line, c.end_line + 1)
+            if changed is not None and not any(ln in changed[0] for ln in span):
                 continue
             rule = verdict(c, cfg)
+            if rule and changed is not None:
+                if removed is None:
+                    old = comments_in(path, old_text(root, rel, args.base) or "")
+                    removed = RemovedComments(old, changed[1])
+                if removed.take(comment_words(c.text)):
+                    continue
             if rule:
                 msg = MSG_REF if rule.endswith("ref-needs-source") else MSG
                 sys.stdout.write(f"{rel}:{c.line}:{c.col}: [{rule}] {msg}\n")

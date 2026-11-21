@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+**Changed: `check-comments` accepts moved and re-wrapped comments**
+- A comment on an added line isn't new when its words are a run of words from comments that the same
+  change removed from the file. So you can move a comment, re-indent it, or re-wrap it to fit the
+  line length. You can also change the code in front of a trailing comment. Before, all of these
+  failed, and agents moved the comment into a docstring or deleted it to get past the hook.
+- A copied comment is still new, and so is a comment with any word added or changed. Each removed
+  word excuses one added word, in the same file.
+
 ## v0.4.0 (2026-11-20)
 
 **Changed: ruff accepts British typography (python and ros2 profiles)**

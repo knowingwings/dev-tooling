@@ -23,12 +23,11 @@ from __future__ import annotations
 
 import argparse
 import re
-import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dev_tooling.check_comments import _git, _match_any, added_lines, tracked_files
+from dev_tooling.check_comments import _match_any, added_lines, old_text, tracked_files
 
 try:
     import tomllib
@@ -238,26 +237,6 @@ def unit_words(block: Block, line: int, rule: str, typst: bool, cfg: Config) -> 
         if ln == line and len(words) > limit:
             return words
     return []
-
-
-def old_text(root: Path, rel: str, base: str | None) -> str | None:
-    """The file before the change: at the merge base with `base`, or at HEAD for a staged change."""
-    rev = "HEAD"
-    if base:
-        mb = subprocess.run(
-            [_git(), "merge-base", base, "HEAD"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if mb.returncode != 0:
-            return None
-        rev = mb.stdout.strip()
-    p = subprocess.run(
-        [_git(), "show", f"{rev}:{rel}"], cwd=root, capture_output=True, text=True, check=False
-    )
-    return p.stdout if p.returncode == 0 else None
 
 
 def carried_over(words: list[str], rule: str, old: list[tuple[str, list[str]]]) -> bool:
