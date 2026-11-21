@@ -10,6 +10,7 @@ This rule comes from Lauren Tan's approach. Comments go stale, and agents use th
 workarounds. Thus the hook blocks new comments. Put the why in names, types, checks, tests or the
 commit message. The hook checks only the lines added in a commit, so existing code does not fail when
 you touch it.
+A comment that you move, re-indent or re-wrap isn't new either, if its words stay the same.
 
 These are allowed: doc comments, `SAFETY:`, `REF(<datasheet/erratum/issue>): <fact>` for hardware
 facts, suppressions with a reason, and licence headers. To tune the rule or turn it off, use the

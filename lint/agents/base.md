@@ -38,6 +38,9 @@ workarounds. Say it somewhere a tool checks instead:
 - a test that pins the behaviour
 - the commit message, for the why behind a change
 
+You can move, re-indent or re-wrap an existing comment: the hook accepts it if its words stay the
+same. So leave it where it is. Don't move it into a docstring or delete it to get past the hook.
+
 Allowed: doc comments on public API (`///`, `//!`, `/** */`, docstrings), `SAFETY:` on unsafe blocks,
 `REF(<datasheet section, erratum id or issue URL>): <fact>` for hardware facts code can't express,
 suppressions with a reason, and licence headers.
