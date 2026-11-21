@@ -46,6 +46,9 @@ repos:
   - repo: https://github.com/knowingwings/dev-tooling
     rev: v0.1.0   # adopt.sh sets this to the kit version you adopted
     hooks:
+      - id: check-patterns    # rules in patterns.toml
+        types_or: [file]
+        files: \.astro$
       - id: check-branch
       - id: check-prose
       - id: check-secrets

@@ -190,6 +190,9 @@ each document; Tinymist preview opens with `Ctrl+K V`.
 - On each machine, run `npm ci` before you commit, because the hooks run the tools from `node_modules`.
 - Existing code can fail `prettier --check`. Format it with `npx --no-install prettier --write .` in its
   own commit.
+- Build the site before and after that commit, and compare the pages. Prettier's Astro plugin can
+  put a space between an element and the text after it, so `</a>.` shows as "LinkedIn .". The
+  `astro-punctuation-own-line` rule finds the usual case: punctuation on its own line.
 
 **Verify:** `./check --list` shows hooks, eslint, prettier, astro-check and build;
 `npx --no-install eslint .` and `npx --no-install astro check` run without a config error.
