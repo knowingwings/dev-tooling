@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.1 (2026-11-21)
 
 **Changed: `check-comments` accepts moved and re-wrapped comments**
 - A comment on an added line isn't new when its words are a run of words from comments that the same
