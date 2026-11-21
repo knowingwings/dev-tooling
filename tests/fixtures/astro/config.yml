@@ -1,0 +1,4 @@
+# Aligned comments, as in the kit's hook config and workflows: Prettier must leave this file alone.
+build:
+  output: dist   # where astro build writes the site
+  site: https://example.com

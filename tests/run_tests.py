@@ -252,7 +252,7 @@ def prettier(d: Path) -> Counter[str]:
 
 
 def prof_astro(d: Path) -> Counter[str]:
-    for name in ("eslint.config.mjs", ".prettierrc.json", ".prettierignore"):
+    for name in ("eslint.config.mjs", ".prettierrc.json", ".prettierignore", "patterns.toml"):
         shutil.copy(LINT / "astro" / name, d)
     need("npm")
     subprocess.run(
@@ -261,7 +261,7 @@ def prof_astro(d: Path) -> Counter[str]:
         check=True,
     )
     git_init(d)
-    return eslint(d) + prettier(d)
+    return patterns(d) + eslint(d) + prettier(d)
 
 
 PROFILES = {

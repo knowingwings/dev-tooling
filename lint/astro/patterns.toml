@@ -1,5 +1,16 @@
 # Settings for dev-tooling hooks in an Astro site.
 
+# ---- Pattern rules (check-patterns hook) ---------------------------------------------------------
+# Write the message as the fix, so an agent can act on it without asking.
+[[rule]]
+id = "astro-punctuation-own-line"
+pattern = '^\s*[.,;:!?]+\s*$'
+include = ["**/*.astro"]
+exclude = ["node_modules/**", "dist/**"]
+message = """Punctuation on its own line shows as a space before it on the page ("LinkedIn ."). \
+Prettier's Astro plugin does this when it wraps an element. Join it to the element (`</a>.`), and put \
+<!-- prettier-ignore --> on the line before the element that holds the sentence so Prettier keeps it."""
+
 # ---- Git and PR conventions (check-branch hook, pr-checks workflow) -----------------------------
 # Defaults shown; uncomment to change.
 [git]

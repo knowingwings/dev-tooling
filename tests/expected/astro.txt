@@ -5,4 +5,5 @@ eslint:astro/jsx-a11y/click-events-have-key-events 1
 eslint:astro/jsx-a11y/no-static-element-interactions 1
 eslint:eqeqeq 2
 eslint:no-console 2
+patterns:astro-punctuation-own-line 1
 prettier:unformatted 1

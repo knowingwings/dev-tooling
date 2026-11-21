@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+**Fixed: Prettier no longer changes YAML in astro repos**
+- `.prettierignore` lists `*.yml` and `*.yaml`. The commit hooks never formatted YAML, but `./check`
+  ran `prettier --check .`, so it failed on the kit's own hook config and workflows. Their aligned
+  comments aren't Prettier style.
+
+**New: `astro-punctuation-own-line` rule (astro profile)**
+- Prettier's Astro plugin can put a punctuation mark on its own line when it wraps an element. The
+  page then shows a space before the mark: `</a>.` becomes "LinkedIn .".
+- The `check-patterns` hook now runs on `.astro` files and flags that line. Its message gives the
+  fix: `<!-- prettier-ignore -->` before the element that holds the sentence.
+- SETUP.md: after you format existing code, build the site before and after and compare the pages.
+
 ## v0.4.1 (2026-11-21)
 
 **Changed: `check-comments` accepts moved and re-wrapped comments**
