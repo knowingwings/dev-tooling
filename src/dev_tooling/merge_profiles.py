@@ -233,6 +233,130 @@ def _leading_comments(text: str) -> list[str]:
     return lines
 
 
+KeyPath = tuple[str | int, ...]
+SCALAR = re.compile(r"-?\d[\d.eE+-]*|true|false|null")
+
+
+def jsonc_comments(text: str) -> dict[KeyPath, list[str]]:
+    """The comments inside a JSONC document, by the path of the key or element that follows them.
+
+    A comment before an object's key or an array's element is stored under that item's path, for
+    example ("clangd.arguments", 4). A comment just before a closing bracket goes with that
+    container, and one after the document's last item with the empty path. Comments before the
+    document's first bracket are its leading comments (see _leading_comments), so they're skipped.
+    """
+    found: dict[KeyPath, list[str]] = {}
+    frames: list[list[str | int | None]] = []
+    pending: list[str] = []
+    expect_key = False
+
+    def at() -> KeyPath:
+        return tuple(f[1] for f in frames[:-1] if f[1] is not None)
+
+    def flush(path: KeyPath) -> None:
+        if pending:
+            found.setdefault(path, []).extend(pending)
+            pending.clear()
+
+    def start_element() -> None:
+        if frames and frames[-1][0] == "[":
+            index = frames[-1][1]
+            frames[-1][1] = index + 1 if isinstance(index, int) else 0
+            flush((*at(), frames[-1][1]))
+
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        scalar = SCALAR.match(text, i)
+        if c == '"':
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            if expect_key:
+                frames[-1][1] = json.loads(text[i : j + 1])
+                flush((*at(), frames[-1][1]))
+                expect_key = False
+            else:
+                start_element()
+            i = j + 1
+        elif text.startswith("//", i) or text.startswith("/*", i):
+            j = text.find("\n", i) if text[i + 1] == "/" else text.index("*/", i) + 2
+            j = n if j == -1 else j
+            if frames:
+                pending.append(text[i:j].strip())
+            i = j
+        elif c in "{[":
+            start_element()
+            frames.append([c, None])
+            expect_key = c == "{"
+            i += 1
+        elif c in "}]":
+            flush(at())
+            frames.pop()
+            i += 1
+        elif c == ",":
+            expect_key = bool(frames) and frames[-1][0] == "{"
+            i += 1
+        elif scalar:
+            start_element()
+            i = scalar.end()
+        else:
+            i += 1
+    flush(())
+    return found
+
+
+def _place(path: KeyPath, source: object, merged: object) -> KeyPath | None:
+    """The path in `merged` of the item at `path` in `source`, or None when merged dropped it.
+
+    An array element is found by identity, so a comment stays with the element it describes, and
+    is dropped with an array that the other profile's array replaced.
+    """
+    out: list[str | int] = []
+    for step in path:
+        if isinstance(step, str):
+            if not (isinstance(source, dict) and isinstance(merged, dict)):
+                return None
+            if step not in source or step not in merged:
+                return None
+            source, merged = source[step], merged[step]
+            out.append(step)
+            continue
+        if not (isinstance(source, list) and isinstance(merged, list) and step < len(source)):
+            return None
+        item = source[step]
+        index = (
+            step if merged is source else next((k for k, x in enumerate(merged) if x is item), None)
+        )
+        if index is None:
+            return None
+        source, merged = item, merged[index]
+        out.append(index)
+    return tuple(out)
+
+
+def _dump(
+    value: object, comments: dict[KeyPath, list[str]], path: KeyPath = (), level: int = 0
+) -> str:
+    """JSON as json.dumps(indent=2) writes it, with each comment before the item it is about."""
+    pad, inner = "  " * level, "  " * (level + 1)
+    if isinstance(value, dict) and value:
+        items = [
+            ((*path, k), json.dumps(k, ensure_ascii=False) + ": ", v) for k, v in value.items()
+        ]
+        brackets = "{}"
+    elif isinstance(value, list) and value:
+        items = [((*path, k), "", v) for k, v in enumerate(value)]
+        brackets = "[]"
+    else:
+        return json.dumps(value, ensure_ascii=False)
+    parts = []
+    for where, label, item in items:
+        notes = "".join(f"{inner}{c}\n" for c in comments.get(where, []))
+        parts.append(f"{notes}{inner}{label}{_dump(item, comments, where, level + 1)}")
+    return f"{brackets[0]}\n" + ",\n".join(parts) + f"\n{pad}{brackets[1]}"
+
+
 def _merge_dict(first: dict[str, object], second: dict[str, object]) -> dict[str, object]:
     out = dict(first)
     for key, value in second.items():
@@ -265,26 +389,38 @@ def merge_vscode(name: str, first: str, second: str) -> str:
     a = json.loads(strip_jsonc(first))
     b = json.loads(strip_jsonc(second))
     if name == "extensions.json":
-        a["recommendations"] = _union(
-            a.get("recommendations", []), b.get("recommendations", []), None
-        )
+        merged = {
+            **a,
+            "recommendations": _union(
+                a.get("recommendations", []), b.get("recommendations", []), None
+            ),
+        }
     elif name == "tasks.json":
         incoming = b.get("tasks", [])
         if any(_is_default_build(t) for t in a.get("tasks", [])):
             incoming = [
                 {**t, "group": {"kind": "build"}} if _is_default_build(t) else t for t in incoming
             ]
-        a["tasks"] = _union(a.get("tasks", []), incoming, "label")
+        merged = {**a, "tasks": _union(a.get("tasks", []), incoming, "label")}
     elif name == "launch.json":
-        a["configurations"] = _union(
-            a.get("configurations", []), b.get("configurations", []), "name"
-        )
+        merged = {
+            **a,
+            "configurations": _union(
+                a.get("configurations", []), b.get("configurations", []), "name"
+            ),
+        }
     else:
-        a = _merge_dict(a, b)
-    comments = _leading_comments(first)
-    comments += [c for c in _leading_comments(second) if c not in comments]
-    body = json.dumps(a, indent=2, ensure_ascii=False)
-    return "".join(f"{c}\n" for c in comments) + body + "\n"
+        merged = _merge_dict(a, b)
+    placed: dict[KeyPath, list[str]] = {}
+    for source, text in ((a, first), (b, second)):
+        for path, lines in jsonc_comments(text).items():
+            where = _place(path, source, merged)
+            if where is not None:
+                bucket = placed.setdefault(where, [])
+                bucket += [ln for ln in lines if ln not in bucket]
+    leading = _leading_comments(first)
+    leading += [c for c in _leading_comments(second) + placed.pop((), []) if c not in leading]
+    return "".join(f"{c}\n" for c in leading) + _dump(merged, placed) + "\n"
 
 
 def merge(destination: str, first: str, second: str) -> str | None:
