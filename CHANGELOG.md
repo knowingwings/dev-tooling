@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+**Changed: the `astro-punctuation-own-line` fix uses an Astro comment**
+- The rule's message now suggests `{/* prettier-ignore */}`. Prettier's Astro plugin honours it,
+  and Astro leaves it out of the page. `<!-- prettier-ignore -->` works too, but it ships in the
+  HTML.
+
 ## v0.4.2 (2026-11-22)
 
 **Fixed: Prettier no longer changes YAML in astro repos**
