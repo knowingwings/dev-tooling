@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**Fixed: `test_as_agent.sh` never runs the real `op` CLI**
+- The "missing op CLI" test set `PATH=/usr/bin:/bin` to hide `op`. On Arch Linux, `op` is in
+  `/usr/bin`, so the test ran the real 1Password CLI, which can show an approval prompt, and then
+  failed. The test now uses links to the system tools without `op`.
+
 **Changed: the `astro-punctuation-own-line` fix uses an Astro comment**
 - The rule's message now suggests `{/* prettier-ignore */}`. Prettier's Astro plugin honours it,
   and Astro leaves it out of the page. `<!-- prettier-ignore -->` works too, but it ships in the
