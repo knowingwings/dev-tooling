@@ -203,10 +203,16 @@ each document; Tinymist preview opens with `Ctrl+K V`.
 Require a pull request. Require the `pr-checks` and CI status checks to pass. Require a review from
 Code Owners. Without this rule, the checks below give advice but do not stop a merge.
 
+Branch protection needs a public repo, or a paid plan for a private repo. On a private repo with
+GitHub Free, nothing on GitHub can block a push to `main`. Two parts of the kit cover that gap:
+- The `check-branch` pre-push hook blocks a direct push from every machine with the kit's hooks.
+- The `main-guard` workflow checks every push to the default branch. If a commit didn't come from a
+  merged pull request, or the push was a force-push, the workflow fails and opens an issue.
+
 | Convention | Enforced by | Example |
 | --- | --- | --- |
 | Branch `<type>/<short-description>`, or an agent prefix (`claude/...`) | `check-branch` hook (pre-push) and `pr-checks` | `feat/motor-current-limit`, `fix/123-imu-timestamp` |
-| No direct pushes to `main` | `check-branch` hook, branch protection | open a PR instead |
+| No direct pushes to `main` | `check-branch` hook, branch protection (or `main-guard` without it) | open a PR instead |
 | PR title is a Conventional Commit (it becomes the squash-merge commit) | `pr-checks` | `fix(imu): use sensor timestamp for fusion` |
 | PR **Evidence** filled in, exactly one **Risk** box ticked | `pr-checks` | test output, sim/bag run, plot, before/after |
 | Changes to the checks (lint configs, `AGENTS.md`, `.github/`) in their own PR, except a kit adoption or update (it changes `.dev-tooling-version`) | `pr-checks`, CODEOWNERS | `chore(lint): ban HAL_Delay outside init` |
@@ -334,8 +340,10 @@ Medium-risk and high-risk pull requests always wait for you.
    - **require review from Code Owners**
    - **require status checks**: `pr-checks` and your CI
 
-   The workflow does nothing until required checks exist. Thus "merge when green" can never become
-   "merge now".
+   With this rule, GitHub's own auto-merge waits for the required checks. A private repo on GitHub
+   Free can't have the rule, so skip this step there. The workflow then waits until every other
+   check on the pull request's last commit has passed, and merges only that commit. A new push
+   starts the wait again. Either way, "merge when green" can never become "merge now".
 3. Go to Settings > Secrets and variables > Actions. Add these settings:
    - the variable `PUBLISHER_CLIENT_ID`
    - the secret `PUBLISHER_PRIVATE_KEY`, which is the publisher App's key

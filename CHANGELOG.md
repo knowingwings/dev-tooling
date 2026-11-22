@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+**New: `main-guard` workflow (every profile)**
+- GitHub Free has no branch protection for private repos, so nothing on GitHub can block a push to
+  `main`. `main-guard` runs on every push to the default branch, and asks GitHub which pull request
+  brought in each new commit.
+- If a commit didn't come from a pull request merged into that branch, or the push was a
+  force-push, the workflow fails and opens an issue. The issue reaches you even when a bot pushed.
+- The `check-branch` pre-push hook still blocks direct pushes from machines with the kit's hooks.
+
+**Changed: auto-merge works without branch protection**
+- Before, the auto-merge workflow did nothing without branch protection. Now it waits until every
+  other check on the pull request's last commit has passed, and then merges only that commit
+  (`--match-head-commit`). A failed check stops it. A new push cancels the wait and starts again.
+- With branch protection, it still uses GitHub's own auto-merge and required checks.
+- The other rules are unchanged: Low risk, approved by someone other than the author, no changes to
+  the checks, and no hold label. `automerge = false` in `[git]` still turns it off.
+
 **Fixed: `test_as_agent.sh` never runs the real `op` CLI**
 - The "missing op CLI" test set `PATH=/usr/bin:/bin` to hide `op`. On Arch Linux, `op` is in
   `/usr/bin`, so the test ran the real 1Password CLI, which can show an approval prompt, and then

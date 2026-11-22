@@ -1,0 +1,56 @@
+# Flags commits that reach the default branch without a merged pull request, and force-pushes.
+# GitHub Free has no branch protection for private repos, so nothing can block such a push. This
+# finds it straight after, fails, and opens an issue, so the owner hears about it even when a bot
+# pushed. On machines with the kit's hooks, the check-branch pre-push hook blocks it before that.
+name: main-guard
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  guard:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev-tooling checks
+        env:
+          KIT_REV: v0.1.0   # adopt.sh sets this to the kit version you adopted
+        run: pip install --quiet "git+https://github.com/knowingwings/dev-tooling@${KIT_REV}"
+
+      - name: Find commits without a merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          PUSH_FORCED: ${{ github.event.forced }}
+        run: |
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            shas="$AFTER"
+          else
+            shas="$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.commits[].sha')"
+          fi
+          COMMITS_JSON="$(for sha in $shas; do
+            gh api "repos/$REPO/commits/$sha/pulls" \
+              --jq "{sha: \"$sha\", pulls: [.[] | {number, merged_at, base: {ref: .base.ref}}]}"
+          done | jq -s .)"
+          export COMMITS_JSON
+          if check-main > report.md; then
+            cat report.md
+          else
+            cat report.md
+            gh issue create --repo "$REPO" --body-file report.md \
+              --title "Commits on $BRANCH without a merged pull request"
+            exit 1
+          fi

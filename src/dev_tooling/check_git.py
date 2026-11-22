@@ -12,6 +12,13 @@ checks and the files they need together, and the owner reviews it because the fi
 check-automerge (CI): whether a PR may merge itself once its checks pass. Only Low risk, approved
 by someone other than the author, not touching the checks themselves, and not labelled to hold.
 
+wait-for-checks (CI): on a repo without branch protection, wait until every other check on the PR's
+head commit has passed, so auto-merge still means "merge when green", never "merge now".
+
+check-main (CI, on push to the default branch): GitHub Free has no branch protection for private
+repos, so a push straight to main can't be blocked. This finds each new commit that no merged pull
+request brought in, and any force-push, so the workflow can fail and open an issue.
+
 Configured by an optional [git] table in patterns.toml.
 """
 
@@ -25,6 +32,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -357,6 +365,125 @@ def main_automerge() -> int:
         return 1
     sys.stdout.write("eligible for auto-merge: merges when every required check passes\n")
     return 0
+
+
+def checks_state(
+    runs: list[dict[str, object]], statuses: list[dict[str, object]], ignore: str
+) -> tuple[str, list[str]]:
+    """("passed" | "pending" | "failed", details) for a commit's check runs and commit statuses.
+
+    `ignore` is the waiting job's own check name. A check run passes when it completed as success,
+    neutral or skipped, and a commit status when its state is success. With no other check at all
+    the state is pending, so a commit never merges before its checks have started.
+    """
+    pending: list[str] = []
+    failed: list[str] = []
+    seen = 0
+    for run in runs:
+        name = str(run.get("name", ""))
+        if name == ignore:
+            continue
+        seen += 1
+        if run.get("status") != "completed":
+            pending.append(name)
+        elif run.get("conclusion") not in ("success", "neutral", "skipped"):
+            failed.append(f"{name} ({run.get('conclusion')})")
+    for status in statuses:
+        name = str(status.get("context", ""))
+        seen += 1
+        if status.get("state") == "pending":
+            pending.append(name)
+        elif status.get("state") != "success":
+            failed.append(f"{name} ({status.get('state')})")
+    if failed:
+        return "failed", failed
+    if pending or not seen:
+        return "pending", pending or ["no other checks yet"]
+    return "passed", []
+
+
+def main_wait() -> int:
+    ap = argparse.ArgumentParser(description="Wait until every other check on a commit passes.")
+    ap.add_argument("--repo", required=True, help="owner/name")
+    ap.add_argument("--sha", required=True, help="the commit to wait for")
+    ap.add_argument("--ignore", required=True, help="this job's own check name")
+    ap.add_argument("--timeout", type=int, default=1800, help="seconds to wait (default 1800)")
+    ap.add_argument("--interval", type=int, default=20, help="seconds between polls")
+    ap.add_argument("--grace", type=int, default=30, help="seconds for other checks to start")
+    args = ap.parse_args()
+    gh = shutil.which("gh")
+    if gh is None:
+        sys.exit("wait-for-checks: gh not found on PATH")
+
+    def api(path: str) -> dict[str, list[dict[str, object]]]:
+        out = subprocess.run([gh, "api", path], capture_output=True, text=True, check=True)
+        return json.loads(out.stdout)
+
+    time.sleep(args.grace)
+    deadline = time.monotonic() + args.timeout
+    commit = f"repos/{args.repo}/commits/{args.sha}"
+    while True:
+        runs = api(f"{commit}/check-runs?per_page=100")["check_runs"]
+        statuses = api(f"{commit}/status")["statuses"]
+        state, details = checks_state(runs, statuses, args.ignore)
+        if state == "passed":
+            sys.stdout.write(f"every other check on {args.sha[:7]} passed\n")
+            return 0
+        if state == "failed":
+            sys.stdout.write(f"not merging {args.sha[:7]}: {', '.join(details)} failed\n")
+            return 1
+        if time.monotonic() > deadline:
+            sys.stdout.write(f"stopped waiting for {', '.join(details)}; the next event retries\n")
+            return 1
+        time.sleep(args.interval)
+
+
+def unmerged_commits(commits: list[dict[str, object]], branch: str) -> list[str]:
+    """The pushed commits that no pull request merged into `branch` brought in.
+
+    Each item is {"sha": ..., "pulls": [...]}, with the pull requests that GitHub associates with
+    the commit (GET /repos/{repo}/commits/{sha}/pulls). An open PR doesn't count: its branch can
+    hold the commit while the push to `branch` skipped it.
+    """
+    out: list[str] = []
+    for commit in commits:
+        pulls = commit.get("pulls")
+        merged = isinstance(pulls, list) and any(
+            isinstance(pr, dict)
+            and bool(pr.get("merged_at"))
+            and isinstance(pr.get("base"), dict)
+            and pr["base"].get("ref") == branch
+            for pr in pulls
+        )
+        if not merged:
+            out.append(str(commit.get("sha", "")))
+    return out
+
+
+MAIN_GUARD_HELP = (
+    "GitHub Free has no branch protection for private repos, so these commits couldn't be blocked; "
+    "main-guard found them after the push. For each one, open a pull request that reverts it or "
+    "explains it. To keep it from happening, push to a branch and open a pull request: the "
+    "check-branch pre-push hook blocks direct pushes from any machine that has the kit's hooks."
+)
+
+
+def main_guard() -> int:
+    branch = os.environ.get("BRANCH", "")
+    commits = json.loads(os.environ.get("COMMITS_JSON") or "[]")
+    lines = []
+    if os.environ.get("PUSH_FORCED", "") == "true":
+        lines.append(f"- The push to `{branch}` was a force-push: it rewrote the branch's history.")
+    lines += [
+        f"- {sha} reached `{branch}` without a pull request merged into it."
+        for sha in unmerged_commits(commits, branch)
+    ]
+    if not lines:
+        sys.stdout.write(f"every new commit on {branch} came from a merged pull request\n")
+        return 0
+    sys.stdout.write(f"Commits reached `{branch}` without review:\n\n")
+    sys.stdout.write("\n".join(lines) + "\n\n" + MAIN_GUARD_HELP + "\n")
+    return 1
 
 
 if __name__ == "__main__":
