@@ -14,6 +14,13 @@
   fix: `<!-- prettier-ignore -->` before the element that holds the sentence.
 - SETUP.md: after you format existing code, build the site before and after and compare the pages.
 
+**Fixed: combined profiles keep the comments in VS Code files**
+- When two profiles both have a `.vscode/*.json` file, the merged file now keeps every comment
+  before the key or array element it describes. Before, only the comments at the top of the file
+  were kept, so `astro,typst` lost the notes on `typescript.tsdk` and the Typst fonts.
+- A comment inside an array goes when the first profile's array replaces that array. One-profile
+  adoption is unchanged.
+
 ## v0.4.1 (2026-11-21)
 
 **Changed: `check-comments` accepts moved and re-wrapped comments**

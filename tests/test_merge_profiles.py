@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from dev_tooling.merge_profiles import (
     join_patterns,
+    jsonc_comments,
     merge,
     merge_patterns,
     merge_precommit,
@@ -136,6 +137,71 @@ class VSCode(unittest.TestCase):
         )
         self.assertTrue(out.startswith("// Astro site."))
         self.assertIn("// Typst documents.", out)
+
+
+def vscode(profile: str, name: str) -> str:
+    return (VSCODE / profile / ".vscode" / name).read_text()
+
+
+def line_before(text: str, needle: str) -> str:
+    lines = text.splitlines()
+    return next(lines[i - 1].strip() for i, ln in enumerate(lines) if needle in ln)
+
+
+class VSCodeComments(unittest.TestCase):
+    def test_comments_stay_before_their_keys(self) -> None:
+        out = merge_vscode(
+            "settings.json", vscode("astro", "settings.json"), vscode("typst", "settings.json")
+        )
+        self.assertEqual(
+            line_before(out, '"typescript.tsdk"'),
+            "// The project's TypeScript, so the editor and astro check agree.",
+        )
+        self.assertTrue(line_before(out, '"tinymist.systemFonts"').startswith("// Same fonts as"))
+
+    def test_comment_before_an_array_element(self) -> None:
+        out = merge_vscode(
+            "settings.json", vscode("typst", "settings.json"), vscode("firmware", "settings.json")
+        )
+        self.assertTrue(line_before(out, '"--query-driver=').startswith("// Lets clangd ask"))
+
+    def test_comment_dropped_with_the_array_it_was_in(self) -> None:
+        out = merge_vscode(
+            "settings.json", vscode("ros2", "settings.json"), vscode("firmware", "settings.json")
+        )
+        self.assertNotIn("--query-driver", out)
+        self.assertNotIn("Lets clangd ask", out)
+        self.assertTrue(line_before(out, '"clangd.arguments"').startswith("// clangd reads"))
+
+    def test_first_profiles_comments_all_kept(self) -> None:
+        profiles = sorted(p.name for p in VSCODE.iterdir() if (p / ".vscode").is_dir())
+        for name in ("settings.json", "tasks.json", "launch.json", "extensions.json"):
+            for first in profiles:
+                for second in profiles:
+                    a, b = VSCODE / first / ".vscode" / name, VSCODE / second / ".vscode" / name
+                    if first == second or not (a.exists() and b.exists()):
+                        continue
+                    out = merge_vscode(name, a.read_text(), b.read_text())
+                    for ln in a.read_text().splitlines():
+                        if ln.strip().startswith("//"):
+                            self.assertIn(ln.strip(), out, f"{first},{second} {name}")
+                    json.loads(strip_jsonc(out))
+
+    def test_without_comments_same_as_json_dumps(self) -> None:
+        first, second = '{"a": [1, 2], "b": {"c": true}}', '{"b": {"d": null}, "e": "x"}'
+        out = merge_vscode("settings.json", first, second)
+        expected = {"a": [1, 2], "b": {"c": True, "d": None}, "e": "x"}
+        self.assertEqual(out, json.dumps(expected, indent=2) + "\n")
+
+    def test_comment_paths(self) -> None:
+        text = (
+            '{\n  // a\n  "x": [\n    1,\n    // b\n    "two"\n  ],\n'
+            '  "y": {"z": 1 /* c */}\n  // d\n}\n'
+        )
+        self.assertEqual(
+            jsonc_comments(text),
+            {("x",): ["// a"], ("x", 1): ["// b"], ("y",): ["/* c */"], (): ["// d"]},
+        )
 
 
 class Jsonc(unittest.TestCase):
