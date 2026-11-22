@@ -65,7 +65,8 @@ exclude = ["Drivers/**", "**/Drivers/**", "Middlewares/**", "third_party/**", "v
 # to keep an integration branch.
 [git]
 # Let Low-risk, approved PRs merge themselves when green (.github/workflows/auto-merge.yml).
-# Needs branch protection with required status checks on main; Medium/High always wait for a person.
+# With branch protection it uses GitHub's auto-merge; without, it waits for every check itself.
+# Medium/High always wait for a person.
 automerge = true
 # protected_branches = ["main", "master"]
 # branch_types = ["feat", "feature", "fix", "docs", "refactor", "perf", "test", "build", "ci", "chore", "revert", "hotfix", "release"]

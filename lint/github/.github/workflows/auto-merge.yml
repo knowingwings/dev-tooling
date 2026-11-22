@@ -5,8 +5,10 @@
 #   - someone other than the author approved (e.g. the reviewer agent), and nobody requested changes
 #   - it doesn't change the checks themselves (lint configs, AGENTS.md, .github/): a human reviews those
 #   - no do-not-merge / needs-human / hold label
-#   - the base branch has protection with required status checks (otherwise this does nothing,
-#     so "merge when green" can't turn into "merge now")
+# With branch protection and required status checks, GitHub's auto-merge waits for those checks.
+# Without protection (private repos on GitHub Free), this job waits until every other check on the
+# PR's head commit has passed, then merges exactly that commit; a new push cancels the wait and
+# starts again. Either way "merge when green" can't turn into "merge now".
 # Anything else stays open for a person. If a PR stops being eligible (risk raised, changes
 # requested, hold label added), auto-merge is switched off again.
 #
@@ -31,8 +33,10 @@ concurrency:
 
 jobs:
   decide:
+    name: auto-merge
     if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,16 +67,17 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if ! gh api "repos/$REPO/branches/$PR_BASE_REF/protection/required_status_checks" >/dev/null 2>&1; then
-            echo "::notice::Auto-merge needs branch protection with required status checks on $PR_BASE_REF. Skipping."
-            exit 0
-          fi
+          protected=true
+          gh api "repos/$REPO/branches/$PR_BASE_REF/protection/required_status_checks" >/dev/null 2>&1 || protected=false
           PR_LABELS="$(gh pr view "$PR" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")')"
           PR_REVIEWS_JSON="$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '[.[] | {user: {login: .user.login}, state: .state}]' | jq -s add)"
           export PR_LABELS PR_REVIEWS_JSON
-          if check-automerge; then
+          if ! check-automerge; then
+            [ "$protected" = false ] || gh pr merge "$PR" --repo "$REPO" --disable-auto 2>/dev/null || true
+          elif [ "$protected" = true ]; then
             gh pr merge "$PR" --repo "$REPO" --auto --squash
-          else
-            gh pr merge "$PR" --repo "$REPO" --disable-auto 2>/dev/null || true
+          elif wait-for-checks --repo "$REPO" --sha "$HEAD_SHA" --ignore auto-merge; then
+            gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$HEAD_SHA"
           fi

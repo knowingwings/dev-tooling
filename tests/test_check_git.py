@@ -16,8 +16,10 @@ from dev_tooling.check_git import (
     automerge_reasons,
     body_problems,
     branch_problem,
+    checks_state,
     mixed_change_problem,
     title_problem,
+    unmerged_commits,
 )
 
 CFG = GitConfig(**DEFAULTS)  # type: ignore[arg-type]
@@ -191,6 +193,144 @@ class AutoMerge(unittest.TestCase):
     def test_check_changes_always_need_a_human(self) -> None:
         reasons = self.reasons(changed=["patterns.toml"])
         self.assertIn("checks themselves", reasons[0])
+
+
+def run(
+    name: str, status: str = "completed", conclusion: str | None = "success"
+) -> dict[str, object]:
+    return {"name": name, "status": status, "conclusion": conclusion}
+
+
+GREEN = [run("conventions"), run("auto-merge", "in_progress", None)]
+
+
+class WaitForChecks(unittest.TestCase):
+    def test_every_other_check_green_passes(self) -> None:
+        statuses = [{"context": "Cloudflare Pages", "state": "success"}]
+        self.assertEqual(checks_state(GREEN, statuses, "auto-merge"), ("passed", []))
+
+    def test_skipped_and_neutral_pass(self) -> None:
+        runs = [*GREEN, run("docs", conclusion="skipped"), run("lint", conclusion="neutral")]
+        self.assertEqual(checks_state(runs, [], "auto-merge")[0], "passed")
+
+    def test_running_check_waits(self) -> None:
+        runs = [*GREEN, run("test", "in_progress", None)]
+        self.assertEqual(checks_state(runs, [], "auto-merge"), ("pending", ["test"]))
+
+    def test_pending_status_waits(self) -> None:
+        statuses = [{"context": "Cloudflare Pages", "state": "pending"}]
+        self.assertEqual(checks_state(GREEN, statuses, "auto-merge")[0], "pending")
+
+    def test_failed_check_or_status_never_merges(self) -> None:
+        failed = [*GREEN, run("test", conclusion="failure")]
+        self.assertEqual(checks_state(failed, [], "auto-merge"), ("failed", ["test (failure)"]))
+        error = [{"context": "ci/build", "state": "error"}]
+        self.assertEqual(checks_state(GREEN, error, "auto-merge")[0], "failed")
+
+    def test_own_runs_ignored_even_cancelled(self) -> None:
+        runs = [*GREEN, run("auto-merge", conclusion="cancelled")]
+        self.assertEqual(checks_state(runs, [], "auto-merge")[0], "passed")
+
+    def test_no_other_check_yet_waits(self) -> None:
+        only_self = [run("auto-merge", "in_progress", None)]
+        self.assertEqual(checks_state(only_self, [], "auto-merge")[0], "pending")
+
+
+FAKE_GH = """#!/bin/sh
+case "$2" in
+  */status) echo '{"statuses": []}' ;;
+  *) n=$(cat "$STATE"); echo $((n + 1)) > "$STATE"
+     if [ "$n" -lt 1 ]; then s=in_progress c=null; else s=completed c='"'$FINAL'"'; fi
+     echo '{"check_runs": [{"name": "test", "status": "'$s'", "conclusion": '$c'}]}' ;;
+esac
+"""
+
+
+class WaitForChecksCommand(unittest.TestCase):
+    """Runs wait-for-checks against a fake gh: the check is running at first, then finishes."""
+
+    def wait(self, final: str) -> subprocess.CompletedProcess[str]:
+        src = Path(__file__).resolve().parent.parent / "src"
+        cli = "import sys; from dev_tooling.check_git import main_wait; sys.exit(main_wait())"
+        with tempfile.TemporaryDirectory() as d:
+            gh = Path(d) / "gh"
+            gh.write_text(FAKE_GH)
+            gh.chmod(0o755)
+            (Path(d) / "state").write_text("0")
+            args = ["--repo", "o/r", "--sha", "abc1234", "--ignore", "auto-merge"]
+            return subprocess.run(
+                [sys.executable, "-c", cli, *args, "--grace", "0", "--interval", "0"],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={
+                    "PYTHONPATH": str(src),
+                    "PATH": f"{d}:/usr/bin:/bin",
+                    "STATE": str(Path(d) / "state"),
+                    "FINAL": final,
+                },
+            )
+
+    def test_waits_then_passes(self) -> None:
+        p = self.wait("success")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("every other check on abc1234 passed", p.stdout)
+
+    def test_waits_then_refuses_a_failure(self) -> None:
+        p = self.wait("failure")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("not merging abc1234: test (failure) failed", p.stdout)
+
+
+def pr(merged: bool = True, base: str = "main") -> dict[str, object]:
+    return {
+        "number": 7,
+        "merged_at": "2026-11-22T10:00:00Z" if merged else None,
+        "base": {"ref": base},
+    }
+
+
+class MainGuard(unittest.TestCase):
+    def test_commit_from_a_merged_pr_is_fine(self) -> None:
+        self.assertEqual(unmerged_commits([{"sha": "a1", "pulls": [pr()]}], "main"), [])
+
+    def test_direct_push_is_flagged(self) -> None:
+        self.assertEqual(unmerged_commits([{"sha": "b2", "pulls": []}], "main"), ["b2"])
+
+    def test_open_pr_does_not_count(self) -> None:
+        self.assertEqual(
+            unmerged_commits([{"sha": "c3", "pulls": [pr(merged=False)]}], "main"), ["c3"]
+        )
+
+    def test_pr_merged_elsewhere_does_not_count(self) -> None:
+        commits = [{"sha": "d4", "pulls": [pr(base="develop")]}]
+        self.assertEqual(unmerged_commits(commits, "main"), ["d4"])
+        self.assertEqual(unmerged_commits(commits, "develop"), [])
+
+    def run_cli(self, **env: str) -> subprocess.CompletedProcess[str]:
+        src = Path(__file__).resolve().parent.parent / "src"
+        cli = "import sys; from dev_tooling.check_git import main_guard; sys.exit(main_guard())"
+        return subprocess.run(
+            [sys.executable, "-c", cli],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={"PYTHONPATH": str(src), "PATH": "/usr/bin:/bin", **env},
+        )
+
+    def test_command_passes_merged_commits(self) -> None:
+        commits = '[{"sha": "a1", "pulls": [{"merged_at": "2026-11-22", "base": {"ref": "main"}}]}]'
+        p = self.run_cli(BRANCH="main", COMMITS_JSON=commits, PUSH_FORCED="false")
+        self.assertEqual(p.returncode, 0)
+
+    def test_command_reports_direct_push_and_force_push(self) -> None:
+        p = self.run_cli(
+            BRANCH="main", COMMITS_JSON='[{"sha": "b2", "pulls": []}]', PUSH_FORCED="true"
+        )
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("force-push", p.stdout)
+        self.assertIn("- b2 reached `main` without a pull request merged into it.", p.stdout)
+        self.assertIn("open a pull request that reverts it or explains it", p.stdout)
 
 
 PR_CLI = "import sys; from dev_tooling.check_git import main_pr; sys.exit(main_pr())"

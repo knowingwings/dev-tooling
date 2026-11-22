@@ -32,6 +32,7 @@ for profile in ros2 firmware rust rust-embedded python typst astro; do
   check "issue templates copied"             '[[ -f "$R/.github/ISSUE_TEMPLATE/agent-mistake.yml" && -f "$R/.github/ISSUE_TEMPLATE/task.yml" ]]'
   check "CODEOWNERS owner filled in"         'grep -q "^/AGENTS.md *@someone$" "$R/.github/CODEOWNERS"'
   check "pr-checks pinned to kit version"    'grep -q "KIT_REV: $EXPECTED_REV " "$R/.github/workflows/pr-checks.yml"'
+  check "main-guard pinned to kit version"   'grep -q "KIT_REV: $EXPECTED_REV " "$R/.github/workflows/main-guard.yml"'
   check "feature map copied"                 '[[ -f "$R/docs/FEATURE_MAP.md" ]]'
   check "role docs copied"                   '[[ -f "$R/docs/agents/reviewer.md" && -f "$R/docs/agents/builder.md" ]]'
   check "Claude subagents generated"         'head -2 "$R/.claude/agents/reviewer.md" | grep -qx "name: reviewer"'
