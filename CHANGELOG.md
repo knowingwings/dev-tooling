@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.5.0 (2026-11-22)
 
 **New: `main-guard` workflow (every profile)**
 - GitHub Free has no branch protection for private repos, so nothing on GitHub can block a push to
