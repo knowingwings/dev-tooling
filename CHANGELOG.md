@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.2 (2026-11-22)
 
 **Fixed: Prettier no longer changes YAML in astro repos**
 - `.prettierignore` lists `*.yml` and `*.yaml`. The commit hooks never formatted YAML, but `./check`
