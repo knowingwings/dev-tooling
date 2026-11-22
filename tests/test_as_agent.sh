@@ -51,7 +51,9 @@ check "temporary key file removed"         '[[ "$before" == "$after" ]]'
 printf 'CLIENT_ID=Iv23.x\nKEY=op://Dev/missing/key\n' > "$DEV_TOOLING_AGENTS_DIR/ghost.env"
 op_err="$(PATH="$FAKE_OP:$PATH" "$AS" jwt ghost 2>&1 || true)"
 check "1Password errors are explained"     'grep -q "1Password couldn.t read op://Dev/missing/key" <<< "$op_err"'
-noop_err="$(PATH="/usr/bin:/bin" "$AS" jwt ghost 2>&1 || true)"
+NOOP="$TMP/no-op-bin"; mkdir -p "$NOOP"   # the system tools without op, which may be in /usr/bin
+for f in /usr/bin/* /bin/*; do n="${f##*/}"; [[ "$n" == op || -e "$NOOP/$n" || -L "$NOOP/$n" ]] || ln -s "$f" "$NOOP/$n"; done
+noop_err="$(PATH="$NOOP" "$AS" jwt ghost 2>&1 || true)"
 check "missing op CLI is explained"        'grep -q "op CLI isn.t installed" <<< "$noop_err"'
 
 echo "== acting as the builder"
