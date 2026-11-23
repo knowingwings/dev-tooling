@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.0 (2026-11-23)
 
 **Fixed: shell scripts run on Windows with `core.autocrlf=true`**
 - Git for Windows converts line endings to CRLF by default, and bash can't run a script with CRLF
