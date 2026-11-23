@@ -12,6 +12,7 @@ from pathlib import Path
 
 SRC = Path(__file__).resolve().parent.parent / "src"
 GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+FAIL_ON_LOCALE_ENCODING = ["-X", "warn_default_encoding", "-W", "error::EncodingWarning"]
 
 
 def make_repo(d: Path, steps: str) -> None:
@@ -161,8 +162,7 @@ class DevCheck(unittest.TestCase):
             env = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONUTF8": "0"}
             env["PYTHONIOENCODING"] = "cp1252"
             p = subprocess.run(
-                [sys.executable, "-X", "warn_default_encoding", "-W", "error::EncodingWarning",
-                 "-m", "dev_tooling.check"],
+                [sys.executable, *FAIL_ON_LOCALE_ENCODING, "-m", "dev_tooling.check"],
                 cwd=d,
                 capture_output=True,
                 check=False,
