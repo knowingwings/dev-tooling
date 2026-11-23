@@ -83,5 +83,10 @@
   "terminal.integrated.enablePersistentSessions": true,
 
   // ---- Telemetry (work machines often require this off) ---------------------
-  "telemetry.telemetryLevel": "off"
+  "telemetry.telemetryLevel": "off",
+
+  // ---- Windows and Claude Code ----------------------------------------------
+  "window.newWindowProfile": "ROS2",
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.useTerminal": true
 }
