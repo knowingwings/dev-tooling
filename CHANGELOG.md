@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+**New: `multiline` rules in `patterns.toml`**
+- A rule with `multiline = true` is matched against the whole file, not one line at a time. Its
+  hit, and its `lint-allow`, belong to the line where the match starts.
+- Use it for code that a formatter splits over several lines. Rules without it work as before.
+
+**Fixed: `fw-no-unbounded-wait` finds formatted wait loops (firmware profile)**
+- The kit's `.clang-format` moves every loop body to its own line, so after formatting the rule
+  found no wait loops at all. It is now a multiline rule.
+- It flags a loop whose body is empty, `{}`, or only an idle call such as `__NOP()` or
+  `tight_loop_contents()`. A condition that names a tick, timeout or deadline counts as bounded.
+
 ## v0.5.0 (2026-11-22)
 
 **New: `main-guard` workflow (every profile)**

@@ -17,3 +17,17 @@ void motor_step(void)
     free(p);
     do { gain -= 1.0; } while (gain > 0.0);
 }
+void __NOP(void);
+unsigned HAL_GetTick(void);
+void motor_wait(void);
+void motor_wait(void)
+{
+    while (!(USART1->ISR & 0x40U))
+        ;
+    while (!(USART1->ISR & 0x20U)) {
+        __NOP();
+    }
+    const unsigned t0 = HAL_GetTick();
+    while (!(USART1->ISR & 0x10U) && HAL_GetTick() - t0 < 10U) {
+    }
+}

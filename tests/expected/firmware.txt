@@ -1,11 +1,11 @@
 clang-tidy:bugprone-unsafe-functions 3
 clang-tidy:cert-err33-c 1
-clang-tidy:misc-use-internal-linkage 1
-clang-tidy:readability-braces-around-statements 1
+clang-tidy:misc-use-internal-linkage 2
+clang-tidy:readability-braces-around-statements 2
 clang-tidy:readability-uppercase-literal-suffix 2
 comments:no-comments 2
 comments:no-comments-ref-needs-source 1
 patterns:fw-no-blocking-delay 2
 patterns:fw-no-double 1
-patterns:fw-no-unbounded-wait 1
-patterns:fw-register-access-outside-bsp 2
+patterns:fw-no-unbounded-wait 3
+patterns:fw-register-access-outside-bsp 5

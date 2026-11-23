@@ -24,7 +24,12 @@ During early init before timers are up, add lint-allow saying so."""
 [[rule]]
 id = "fw-no-unbounded-wait"
 # Empty-body wait loops like `while (!(USART1->ISR & USART_ISR_TXE));` (but not the end of a do/while).
-pattern = '^(?!\s*\})(?!.*\bdo\b).*\bwhile\s*\([^;{}]*\)\s*;'
+# Multiline, because .clang-format moves every loop body to its own line (`;`, `{ }`, `{ __NOP(); }`).
+# An empty body, `{}`, or only an idle call (__NOP, __WFI, __WFE, tight_loop_contents) counts as a
+# wait. A condition that names a tick, timeout or deadline counts as bounded. Up to three levels of
+# brackets inside the condition.
+multiline = true
+pattern = '^(?![ \t]*\})(?![^\n]*\bdo\b)[^\n]*\bwhile\s*(?!\([^;]*\b(?:\w*[Tt]ick\w*|\w*[Tt]imeout\w*|\w*TIMEOUT\w*|\w*[Dd]eadline\w*|time_us_\w+|get_absolute_time|time_reached)\b)\((?:[^()]|\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\))*\)\s*(?:;|\{\s*\}|\{\s*(?:__NOP|__WFI|__WFE|__nop|__wfi|__wfe|tight_loop_contents)\s*\(\s*\)\s*;\s*\}|(?:__NOP|__WFI|__WFE|__nop|__wfi|__wfe|tight_loop_contents)\s*\(\s*\)\s*;)'
 include = ["**/*.c", "**/*.cpp"]
 exclude = ["Drivers/**", "third_party/**", "vendor/**", "test/**"]
 message = """Wait loop with no timeout: if the hardware never sets the flag, the firmware hangs. \
