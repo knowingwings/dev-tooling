@@ -13,6 +13,10 @@ Rules live in patterns.toml at the repo root (or pass --config). Each rule:
     exclude = ["bsp/**", "drivers/**"]      # optional
     message = "Tell the reader (human or agent) HOW to fix it, not just what's wrong."
 
+A rule with `multiline = true` is matched against the whole file (re.MULTILINE), for code that
+a formatter splits over several lines, such as a loop body that clang-format moves to the next
+line. Its hit, and its lint-allow, belong to the line where the match starts.
+
 Suppression (must name the rule AND give a reason, on the same or previous line):
 
     // lint-allow(fw-no-blocking-delay): clock tree not up yet, timers unavailable
@@ -53,6 +57,7 @@ class Rule:
     message: str
     include: list[str]
     exclude: list[str]
+    multiline: bool = False
 
     def applies_to(self, rel: str) -> bool:
         return _match_any(rel, self.include) and not _match_any(rel, self.exclude)
@@ -80,13 +85,39 @@ def load_rules(config: Path) -> list[Rule]:
     return [
         Rule(
             id=r["id"],
-            pattern=re.compile(r["pattern"]),
+            pattern=re.compile(r["pattern"], re.MULTILINE if r.get("multiline") else 0),
             message=r["message"].strip(),
             include=r.get("include", ["**/*"]),
             exclude=r.get("exclude", []),
+            multiline=bool(r.get("multiline", False)),
         )
         for r in data.get("rule", [])
     ]
+
+
+def find_hits(lines: list[str], rules: list[Rule]) -> list[tuple[int, int, Rule]]:
+    """Return (line index, column, rule) for every match, in file order.
+
+    Line rules skip comment lines. A multiline rule is matched against the whole file, and a
+    match is dropped when the line it starts on is a comment.
+    """
+    hits = [
+        (i, m.start(), rule)
+        for i, line in enumerate(lines)
+        if not line.lstrip().startswith(COMMENT_PREFIXES)
+        for rule in rules
+        if not rule.multiline and (m := rule.pattern.search(line))
+    ]
+    text = "\n".join(lines)
+    for rule in (r for r in rules if r.multiline):
+        starts = (m.start() for m in rule.pattern.finditer(text))
+        located = ((text.count("\n", 0, s), s - (text.rfind("\n", 0, s) + 1)) for s in starts)
+        hits.extend(
+            (i, col, rule)
+            for i, col in located
+            if not lines[i].lstrip().startswith(COMMENT_PREFIXES)
+        )
+    return sorted(hits, key=lambda h: (h[0], h[1]))
 
 
 def allowed(lines: list[str], idx: int, rule_id: str) -> tuple[bool, str | None]:
@@ -141,19 +172,13 @@ def main() -> int:
             lines = path.read_text(errors="replace").splitlines()
         except OSError:
             continue
-        for i, line in enumerate(lines):
-            if line.lstrip().startswith(COMMENT_PREFIXES):
+        for i, col, rule in find_hits(lines, active):
+            ok, problem = allowed(lines, i, rule.id)
+            if ok:
                 continue
-            for rule in active:
-                m = rule.pattern.search(line)
-                if not m:
-                    continue
-                ok, problem = allowed(lines, i, rule.id)
-                if ok:
-                    continue
-                msg = problem or rule.message
-                sys.stdout.write(f"{rel}:{i + 1}:{m.start() + 1}: [{rule.id}] {msg}\n")
-                failures += 1
+            msg = problem or rule.message
+            sys.stdout.write(f"{rel}:{i + 1}:{col + 1}: [{rule.id}] {msg}\n")
+            failures += 1
 
     if failures:
         sys.stderr.write(
