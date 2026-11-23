@@ -30,7 +30,6 @@ content from before the step, and the step fails with "would change N file(s)".
 from __future__ import annotations
 
 import argparse
-import io
 import re
 import shlex
 import shutil
@@ -39,6 +38,8 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from dev_tooling import safe_stdout
 
 try:
     import tomllib
@@ -199,8 +200,7 @@ def main() -> int:
     ap.add_argument("--list", action="store_true", help="list the steps and exit")
     ap.add_argument("--config", type=Path, default=None)
     args = ap.parse_args()
-    if isinstance(sys.stdout, io.TextIOWrapper):
-        sys.stdout.reconfigure(errors="replace")
+    safe_stdout()
 
     root = Path(_git(Path.cwd(), "rev-parse", "--show-toplevel").strip() or Path.cwd())
     steps, base = load_steps(root, args.config)

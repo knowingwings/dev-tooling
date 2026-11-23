@@ -9,9 +9,12 @@
 - `adopt.sh` adds a line to the project's `.gitattributes` for each shell script that it copies,
   for example `/check text eol=lf`.
 
-**Fixed: `./check` on Windows**
+**Fixed: `./check` and the Python hooks on Windows**
 - `./check` stopped with `UnicodeEncodeError` when a step printed a character that the Windows
   code page doesn't have. Logs and step output are now UTF-8, so `PYTHONUTF8=1` isn't necessary.
+- `check-comments` stopped with `TypeError` when a diff had such a character, for example `━` in a
+  string. All the kit's checks now read git output and files as UTF-8.
+- A character that the console can't show is printed as `?`.
 
 **Changed: `./check` doesn't change your files**
 - The `hooks` step runs fixers such as `ruff format` and `end-of-file-fixer`, so it used to rewrite

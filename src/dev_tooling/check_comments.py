@@ -36,6 +36,8 @@ import tokenize
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dev_tooling import safe_stdout
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -270,7 +272,7 @@ def load_config(root: Path, path: Path | None) -> Config:
     data: dict[str, object] = dict(DEFAULTS)
     cfg_file = path or root / "patterns.toml"
     if cfg_file.exists():
-        data.update(tomllib.loads(cfg_file.read_text()).get("comments", {}))
+        data.update(tomllib.loads(cfg_file.read_text(encoding="utf-8")).get("comments", {}))
     return Config(**{k: data[k] for k in Config.__dataclass_fields__ if k in data})
 
 
@@ -288,7 +290,9 @@ def changed_lines(root: Path, rel: str, base: str | None) -> tuple[set[int], set
     """
     args = [_git(), "diff", "--no-color", "--unified=0"]
     args += [f"{base}...HEAD", "--"] if base else ["--cached", "--"]
-    p = subprocess.run([*args, rel], cwd=root, capture_output=True, text=True, check=False)
+    p = subprocess.run(
+        [*args, rel], cwd=root, capture_output=True, encoding="utf-8", errors="replace", check=False
+    )
     if p.returncode != 0:
         return None
     added: set[int] = set()
@@ -315,14 +319,20 @@ def old_text(root: Path, rel: str, base: str | None) -> str | None:
             [_git(), "merge-base", base, "HEAD"],
             cwd=root,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False,
         )
         if mb.returncode != 0:
             return None
         rev = mb.stdout.strip()
     p = subprocess.run(
-        [_git(), "show", f"{rev}:{rel}"], cwd=root, capture_output=True, text=True, check=False
+        [_git(), "show", f"{rev}:{rel}"],
+        cwd=root,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
     )
     return p.stdout if p.returncode == 0 else None
 
@@ -374,7 +384,14 @@ class RemovedComments:
 
 
 def tracked_files(root: Path) -> list[str]:
-    p = subprocess.run([_git(), "ls-files"], cwd=root, capture_output=True, text=True, check=True)
+    p = subprocess.run(
+        [_git(), "ls-files"],
+        cwd=root,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
+    )
     return p.stdout.splitlines()
 
 
@@ -390,6 +407,7 @@ def main() -> int:
         "--all-lines", action="store_true", help="check every comment, not just new ones"
     )
     args = ap.parse_args()
+    safe_stdout()
 
     root = args.root.resolve()
     cfg = load_config(root, args.config)
@@ -406,7 +424,7 @@ def main() -> int:
             rel = Path(f).as_posix()
         if not path.is_file() or not _match_any(rel, cfg.include) or _match_any(rel, cfg.exclude):
             continue
-        found = comments_in(path, path.read_text(errors="replace"))
+        found = comments_in(path, path.read_text(encoding="utf-8", errors="replace"))
         if not found:
             continue
         changed = changed_lines(root, rel, args.base) if only_new else None

@@ -36,6 +36,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dev_tooling import safe_stdout
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -126,7 +128,7 @@ def load_config(root: Path, path: Path | None = None) -> GitConfig:
     data: dict[str, object] = dict(DEFAULTS)
     cfg_file = path or root / "patterns.toml"
     if cfg_file.exists():
-        data.update(tomllib.loads(cfg_file.read_text()).get("git", {}))
+        data.update(tomllib.loads(cfg_file.read_text(encoding="utf-8")).get("git", {}))
     return GitConfig(**{k: data[k] for k in GitConfig.__dataclass_fields__ if k in data})
 
 
@@ -278,7 +280,7 @@ def _git(*args: str, cwd: Path) -> str:
     if git is None:
         sys.exit("check_git: git not found on PATH")
     return subprocess.run(
-        [git, *args], cwd=cwd, capture_output=True, text=True, check=False
+        [git, *args], cwd=cwd, capture_output=True, encoding="utf-8", errors="replace", check=False
     ).stdout.strip()
 
 
@@ -289,6 +291,7 @@ def main_branch() -> int:
     ap.add_argument("--config", type=Path, default=None)
     ap.add_argument("--branch", default=None, help="branch to check (default: the current branch)")
     args = ap.parse_args()
+    safe_stdout()
     root = Path.cwd()
     cfg = load_config(root, args.config)
 
@@ -321,6 +324,7 @@ def main_pr() -> int:
     )
     ap.add_argument("--author", default=os.environ.get("PR_AUTHOR", ""))
     args = ap.parse_args()
+    safe_stdout()
     root = Path.cwd()
     cfg = load_config(root, args.config)
 
@@ -344,6 +348,7 @@ def main_automerge() -> int:
     ap = argparse.ArgumentParser(description="Decide whether a PR may merge itself once green.")
     ap.add_argument("--config", type=Path, default=None)
     args = ap.parse_args()
+    safe_stdout()
     root = Path.cwd()
     cfg = load_config(root, args.config)
     base = os.environ.get("PR_BASE_REF", "")
@@ -411,12 +416,15 @@ def main_wait() -> int:
     ap.add_argument("--interval", type=int, default=20, help="seconds between polls")
     ap.add_argument("--grace", type=int, default=30, help="seconds for other checks to start")
     args = ap.parse_args()
+    safe_stdout()
     gh = shutil.which("gh")
     if gh is None:
         sys.exit("wait-for-checks: gh not found on PATH")
 
     def api(path: str) -> dict[str, list[dict[str, object]]]:
-        out = subprocess.run([gh, "api", path], capture_output=True, text=True, check=True)
+        out = subprocess.run(
+            [gh, "api", path], capture_output=True, encoding="utf-8", errors="replace", check=True
+        )
         return json.loads(out.stdout)
 
     time.sleep(args.grace)
@@ -469,6 +477,7 @@ MAIN_GUARD_HELP = (
 
 
 def main_guard() -> int:
+    safe_stdout()
     branch = os.environ.get("BRANCH", "")
     commits = json.loads(os.environ.get("COMMITS_JSON") or "[]")
     lines = []

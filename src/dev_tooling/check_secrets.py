@@ -21,6 +21,7 @@ import re
 import sys
 from pathlib import Path
 
+from dev_tooling import safe_stdout
 from dev_tooling.check_comments import tracked_files
 
 TOKENS = [
@@ -76,6 +77,7 @@ def main() -> int:
     ap.add_argument("files", nargs="*")
     ap.add_argument("--root", type=Path, default=Path.cwd())
     args = ap.parse_args()
+    safe_stdout()
     root = args.root.resolve()
 
     failures = 0

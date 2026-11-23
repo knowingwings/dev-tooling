@@ -25,6 +25,8 @@ import re
 import sys
 from pathlib import Path
 
+from dev_tooling import safe_stdout
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -436,14 +438,17 @@ def merge(destination: str, first: str, second: str) -> str | None:
 
 
 def main() -> int:
+    safe_stdout()
     if len(sys.argv) != 4:
         sys.stderr.write(__doc__ or "")
         return 2
     destination, staged, incoming = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
-    merged = merge(destination, staged.read_text(), incoming.read_text())
+    merged = merge(
+        destination, staged.read_text(encoding="utf-8"), incoming.read_text(encoding="utf-8")
+    )
     if merged is None:
         return UNSUPPORTED
-    staged.write_text(merged)
+    staged.write_text(merged, encoding="utf-8")
     return 0
 
 

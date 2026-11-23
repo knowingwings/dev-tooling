@@ -27,6 +27,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dev_tooling import safe_stdout
 from dev_tooling.check_comments import _match_any, added_lines, old_text, tracked_files
 
 try:
@@ -96,7 +97,7 @@ def load_config(root: Path, path: Path | None) -> Config:
     data: dict[str, object] = dict(DEFAULTS)
     cfg_file = path or root / "patterns.toml"
     if cfg_file.exists():
-        data.update(tomllib.loads(cfg_file.read_text()).get("prose", {}))
+        data.update(tomllib.loads(cfg_file.read_text(encoding="utf-8")).get("prose", {}))
     return Config(**{k: data[k] for k in Config.__dataclass_fields__ if k in data})
 
 
@@ -264,6 +265,7 @@ def main() -> int:
     ap.add_argument("--base", default=None, help="check blocks changed since this git ref (CI)")
     ap.add_argument("--all-lines", action="store_true", help="check every block, not just changed")
     args = ap.parse_args()
+    safe_stdout()
 
     root = args.root.resolve()
     cfg = load_config(root, args.config)
@@ -281,7 +283,7 @@ def main() -> int:
         if not path.is_file() or not _match_any(rel, cfg.include) or _match_any(rel, cfg.exclude):
             continue
         typst = path.suffix == ".typ"
-        found = problems(path.read_text(errors="replace"), typst, cfg)
+        found = problems(path.read_text(encoding="utf-8", errors="replace"), typst, cfg)
         new = added_lines(root, rel, args.base) if only_new and found else None
         before = old_text(root, rel, args.base) if new is not None else None
         old = (
