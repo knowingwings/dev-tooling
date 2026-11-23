@@ -37,6 +37,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from dev_tooling import safe_stdout
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -81,7 +83,7 @@ def _match_any(rel: str, globs: list[str]) -> bool:
 
 
 def load_rules(config: Path) -> list[Rule]:
-    data = tomllib.loads(config.read_text())
+    data = tomllib.loads(config.read_text(encoding="utf-8"))
     return [
         Rule(
             id=r["id"],
@@ -137,7 +139,14 @@ def tracked_files(root: Path) -> list[str]:
     git = shutil.which("git")
     if git is None:
         sys.exit("check_patterns: git not found on PATH (needed to list tracked files)")
-    out = subprocess.run([git, "ls-files"], cwd=root, capture_output=True, text=True, check=True)
+    out = subprocess.run(
+        [git, "ls-files"],
+        cwd=root,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
+    )
     return out.stdout.splitlines()
 
 
@@ -149,6 +158,7 @@ def main() -> int:
     ap.add_argument("--config", type=Path, default=None)
     ap.add_argument("--root", type=Path, default=Path.cwd())
     args = ap.parse_args()
+    safe_stdout()
 
     root = args.root.resolve()
     config = args.config or root / "patterns.toml"
@@ -169,7 +179,7 @@ def main() -> int:
         if not active or not path.is_file():
             continue
         try:
-            lines = path.read_text(errors="replace").splitlines()
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
             continue
         for i, col, rule in find_hits(lines, active):

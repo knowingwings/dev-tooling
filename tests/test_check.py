@@ -12,12 +12,13 @@ from pathlib import Path
 
 SRC = Path(__file__).resolve().parent.parent / "src"
 GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+FAIL_ON_LOCALE_ENCODING = ["-X", "warn_default_encoding", "-W", "error::EncodingWarning"]
 
 
 def make_repo(d: Path, steps: str) -> None:
     subprocess.run([*GIT, "init", "-q", "-b", "main"], cwd=d, check=True)
     (d / "a.txt").write_text("base\n")
-    (d / "patterns.toml").write_text(textwrap.dedent(steps))
+    (d / "patterns.toml").write_text(textwrap.dedent(steps), encoding="utf-8")
     subprocess.run([*GIT, "add", "-A"], cwd=d, check=True)
     subprocess.run([*GIT, "commit", "-qm", "base"], cwd=d, check=True)
 
@@ -148,6 +149,62 @@ class DevCheck(unittest.TestCase):
             subprocess.run([*GIT, "commit", "-qm", "b"], cwd=clone, check=True)
             p = dev_check(clone, "--only", "on-changed")
             self.assertIn("b.txt", p.stdout)
+
+    def test_non_ascii_output_with_a_non_utf8_locale(self) -> None:
+        steps = """
+            [[check.step]]
+            name = "unicode"
+            run = "echo 'naïve ✓ error: bad µs'; exit 1"
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            make_repo(d, steps)
+            env = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONUTF8": "0"}
+            env["PYTHONIOENCODING"] = "cp1252"
+            p = subprocess.run(
+                [sys.executable, *FAIL_ON_LOCALE_ENCODING, "-m", "dev_tooling.check"],
+                cwd=d,
+                capture_output=True,
+                check=False,
+                env=env,
+            )
+            out = p.stdout.decode("cp1252")
+            self.assertEqual(p.returncode, 1, p.stderr.decode("cp1252", "replace"))
+            self.assertIn("FAIL  unicode", out)
+            self.assertIn("naïve ? error: bad µs", out)
+            log = (d / ".dev-check/unicode.log").read_text(encoding="utf-8")
+            self.assertIn("naïve ✓ error: bad µs", log)
+
+    def test_changed_files_are_restored_after_a_step_rewrites_them(self) -> None:
+        steps = """
+            [[check.step]]
+            name = "fixer"
+            run = "for f in {changed}; do printf 'fixed\\\\n' > \\"$f\\"; done; exit 1"
+
+            [[check.step]]
+            name = "quiet-fixer"
+            run = "for f in {changed}; do printf 'fixed' > \\"$f\\"; done"
+
+            [[check.step]]
+            name = "reader"
+            run = "cat {changed}"
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            make_repo(d, steps)
+            mine = b"my edit, not staged  \r\nno newline at end"
+            (d / "a.txt").write_bytes(mine)
+            (d / "new.txt").write_bytes(b"untracked\n\n\n")
+            p = dev_check(d)
+            self.assertEqual((d / "a.txt").read_bytes(), mine)
+            self.assertEqual((d / "new.txt").read_bytes(), b"untracked\n\n\n")
+            self.assertTrue(self.line(p.stdout, "fixer").endswith("would change 2 file(s)"))
+            self.assertIn("      would change a.txt", p.stdout)
+            self.assertIn("      would change new.txt", p.stdout)
+            self.assertTrue(self.line(p.stdout, "quiet-fixer").startswith("FAIL"))
+            self.assertTrue(self.line(p.stdout, "reader").startswith("PASS"))
+            log = (d / ".dev-check/fixer.log").read_text(encoding="utf-8")
+            self.assertIn("dev-check: restored a.txt", log)
 
     def test_quick_skips_slow(self) -> None:
         p = dev_check(self.d, "--quick")

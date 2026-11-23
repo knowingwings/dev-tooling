@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+**Fixed: shell scripts run on Windows with `core.autocrlf=true`**
+- Git for Windows converts line endings to CRLF by default, and bash can't run a script with CRLF
+  endings. A new `.gitattributes` keeps the kit's shell and Python scripts at LF. This also fixes
+  the shared pre-commit hooks that run the kit's scripts.
+- `adopt.sh` adds a line to the project's `.gitattributes` for each shell script that it copies,
+  for example `/check text eol=lf`.
+
+**Fixed: `./check` and the Python hooks on Windows**
+- `./check` stopped with `UnicodeEncodeError` when a step printed a character that the Windows
+  code page doesn't have. Logs and step output are now UTF-8, so `PYTHONUTF8=1` isn't necessary.
+- `check-comments` stopped with `TypeError` when a diff had such a character, for example `━` in a
+  string. All the kit's checks now read git output and files as UTF-8.
+- A character that the console can't show is printed as `?`.
+
+**Changed: `./check` doesn't change your files**
+- The `hooks` step runs fixers such as `ruff format` and `end-of-file-fixer`, so it used to rewrite
+  every changed file. Now each file gets back its exact content after a `{changed}` step.
+- A step that would change files fails with `would change N file(s)` and lists them.
+
+**Changed: the `clang-tidy` hook fails when it would check nothing**
+- If no file to check is in the build's `compile_commands.json`, the hook used to pass with no
+  output. This happens when the build is from another checkout of the same repo, such as a git
+  worktree. The hook now fails, names the build folder and tells you how to fix it.
+- To push without the check once, use `SKIP=clang-tidy git push`.
+
 ## v0.6.0 (2026-11-23)
 
 **New: shared VS Code settings for windows and Claude Code**

@@ -5,6 +5,7 @@ Run: python3 -m unittest tests/test_check_comments.py
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ from dev_tooling.check_comments import (
 CFG = Config(**DEFAULTS)  # type: ignore[arg-type]
 SRC = Path(__file__).resolve().parent.parent / "src"
 GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+FAIL_ON_LOCALE_ENCODING = ["-X", "warn_default_encoding", "-W", "error::EncodingWarning"]
 
 
 def git(root: Path, *args: str) -> None:
@@ -224,6 +226,45 @@ class MovedComments(unittest.TestCase):
             self.assertEqual(p.returncode, 1)
             self.assertEqual(p.stdout.count("[no-comments]"), 1)
             self.assertIn("m.py:5:", p.stdout)
+
+    def test_non_ascii_diff_with_a_non_utf8_locale(self) -> None:
+        bar = "━━ ● ○ ■"
+        for base in (None, "main"):
+            with self.subTest(base=base), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                git(root, "init", "-q", "-b", "main")
+                (root / "m.py").write_text(f'BAR = "{bar}"\n', encoding="utf-8")
+                git(root, "add", "-A")
+                git(root, "commit", "-qm", "base")
+                git(root, "switch", "-qc", "feat/x")
+                new = f'BAR = "{bar} {bar}"\nx = 1  # {bar} done\n'
+                (root / "m.py").write_text(new, encoding="utf-8")
+                git(root, "add", "-A")
+                args = ["m.py"]
+                if base:
+                    git(root, "commit", "-qm", "bar")
+                    args = ["--base", base, "m.py"]
+                env = {"PYTHONPATH": str(SRC), "PATH": os.environ.get("PATH", "/usr/bin:/bin")}
+                env |= {"PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+                p = subprocess.run(
+                    [
+                        sys.executable,
+                        *FAIL_ON_LOCALE_ENCODING,
+                        "-m",
+                        "dev_tooling.check_comments",
+                        *args,
+                    ],
+                    cwd=root,
+                    capture_output=True,
+                    check=False,
+                    env=env,
+                )
+                err = p.stderr.decode("cp1252", "replace")
+                self.assertNotIn("Traceback", err)
+                self.assertEqual(p.returncode, 1, err)
+                out = p.stdout.decode("cp1252")
+                self.assertNotIn("m.py:1:", out)
+                self.assertIn("m.py:2:", out)
 
 
 class Words(unittest.TestCase):

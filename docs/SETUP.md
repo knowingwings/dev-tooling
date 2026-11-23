@@ -265,6 +265,11 @@ steps live in `[[check.step]]` tables in `patterns.toml`, so a project can add i
 test, a bag replay). `./check` runs the dev-tooling version the project adopted (it needs `uv`), so
 results match on every machine. Agents paste its summary into the PR's Evidence section.
 
+`./check` doesn't change your files. The `hooks` step runs the commit hooks on the changed files,
+and some hooks fix files (whitespace, formatting). After the step, each file gets back the exact
+content it had before, so your own edits stay as they were. The step then fails with `would change
+N file(s)` and lists the files. To apply the fixes, run `pre-commit run --files <file>...`.
+
 ## Agent roles (GitHub Apps)
 
 There are four roles: **architect**, **builder**, **reviewer** and **publisher**. Each role is a
@@ -397,6 +402,8 @@ Read `CHANGELOG.md` for the changes in each version.
 | --- | --- |
 | clang-tidy ignores `CustomFunctions` / unknown `ExcludeHeaderFilterRegex` | clang-tidy older than 20: put `~/.local/bin` first on PATH |
 | Firmware clang-tidy: `'stdint.h' file not found` | add the toolchain include paths to `.clang-tidy` |
+| clang-tidy: `nothing would be checked` | the build is from another checkout (a git worktree, say): build in this checkout, or set `BUILD_DIR` |
+| Windows: `$'\r': command not found` or `pipefail: invalid option name` | the script has CRLF line endings: add `<path> text eol=lf` to `.gitattributes`, then `git add --renormalize .` |
 | `check-comments is not present in repository` | `pre-commit clean`, then retry (cached older kit version) |
 | clangd errors everywhere in a ROS workspace | build once (`Ctrl+Shift+B`) to create `build/compile_commands.json` |
 | `ros2: command not found` in the Claude panel | use the dev container, or start VS Code with `code .` from a sourced terminal |

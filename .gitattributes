@@ -1,0 +1,5 @@
+*.sh text eol=lf
+*.py text eol=lf
+scripts/as-agent text eol=lf
+lint/shared/check text eol=lf
+vscode/ros2/.vscode/ros_bashrc text eol=lf
