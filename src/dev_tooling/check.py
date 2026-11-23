@@ -17,7 +17,9 @@ Steps come from [[check.step]] tables in patterns.toml:
 
 `{changed}` in a command expands to the files changed on this branch (against [check] base,
 default the remote's default branch, origin/HEAD) plus uncommitted and untracked files. A step
-whose command uses `{changed}` is skipped when nothing has changed.
+whose command uses `{changed}` is skipped when nothing has changed. dev-check never changes
+your files: if such a step rewrites one (a formatter hook, say), the file gets back its exact
+content from before the step, and the step fails with "would change N file(s)".
 
     dev-check              run every step
     dev-check --quick      skip slow steps while iterating
@@ -28,6 +30,7 @@ whose command uses `{changed}` is skipped when nothing has changed.
 from __future__ import annotations
 
 import argparse
+import io
 import re
 import shlex
 import shutil
@@ -46,6 +49,7 @@ DEFAULT_ERRORS = r"(?i)\b(error|fail(ed|ure)?|panicked)\b"
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 EXCERPT_LINES = 8
 LOG_DIR = ".dev-check"
+TEXT = {"encoding": "utf-8", "errors": "replace"}
 
 
 @dataclass
@@ -72,7 +76,7 @@ def load_steps(root: Path, config: Path | None) -> tuple[list[Step], str]:
     cfg_file = config or root / "patterns.toml"
     if not cfg_file.exists():
         sys.exit(f"dev-check: no {cfg_file.name}; add [[check.step]] tables to it")
-    data = tomllib.loads(cfg_file.read_text()).get("check", {})
+    data = tomllib.loads(cfg_file.read_text(encoding="utf-8")).get("check", {})
     fields = Step.__dataclass_fields__
     steps = [Step(**{k: v for k, v in s.items() if k in fields}) for s in data.get("step", [])]
     if not steps:
@@ -84,7 +88,7 @@ def _git(root: Path, *args: str) -> str:
     git = shutil.which("git")
     if git is None:
         return ""
-    p = subprocess.run([git, *args], cwd=root, capture_output=True, text=True, check=False)
+    p = subprocess.run([git, *args], cwd=root, capture_output=True, check=False, **TEXT)
     return p.stdout if p.returncode == 0 else ""
 
 
@@ -114,6 +118,21 @@ def changed_files(root: Path, base: str) -> list[str]:
     return sorted(f for f in files if (root / f).is_file() and not f.startswith(own_logs))
 
 
+def snapshot(root: Path, files: list[str]) -> dict[str, bytes]:
+    return {f: (root / f).read_bytes() for f in files if (root / f).is_file()}
+
+
+def restore(root: Path, before: dict[str, bytes]) -> list[str]:
+    """Write back every file whose bytes differ from `before`; return the ones it wrote."""
+    rewritten = []
+    for f, content in before.items():
+        path = root / f
+        if not path.is_file() or path.read_bytes() != content:
+            path.write_bytes(content)
+            rewritten.append(f)
+    return rewritten
+
+
 def _shell() -> list[str]:
     bash = shutil.which("bash")
     return [bash, "-c"] if bash else ["/bin/sh", "-c"]
@@ -126,29 +145,34 @@ def run_step(step: Step, root: Path, changed: list[str]) -> Result:
     if step.requires_path and not (root / step.requires_path).exists():
         return Result(step, "SKIP", detail=f"{step.requires_path} not found")
     cmd = step.run
+    before: dict[str, bytes] = {}
     if "{changed}" in cmd:
         if not changed:
             return Result(step, "SKIP", detail="nothing changed")
         cmd = cmd.replace("{changed}", " ".join(shlex.quote(f) for f in changed))
+        before = snapshot(root, changed)
 
     start = time.monotonic()
-    p = subprocess.run(
-        [*_shell(), cmd], cwd=root, capture_output=True, text=True, errors="replace", check=False
-    )
+    p = subprocess.run([*_shell(), cmd], cwd=root, capture_output=True, check=False, **TEXT)
     seconds = time.monotonic() - start
+    rewritten = restore(root, before)
     output = ANSI.sub("", p.stdout + p.stderr)
+    output += "".join(f"dev-check: restored {f}, which the step changed\n" for f in rewritten)
     log = root / LOG_DIR / f"{step.name}.log"
     log.parent.mkdir(exist_ok=True)
-    log.write_text(f"$ {step.run}\n\n{output}")
+    log.write_text(f"$ {step.run}\n\n{output}", **TEXT)
 
     detail = ""
     if step.summary:
         found = re.findall(step.summary, output, re.M)
         detail = " | ".join(f if isinstance(f, str) else " ".join(f) for f in found).strip()
-    if p.returncode == 0:
+    if p.returncode == 0 and not rewritten:
         return Result(step, "PASS", seconds, detail)
-    lines = [ln.rstrip() for ln in output.splitlines() if re.search(step.errors, ln)]
-    if not detail:
+    lines = [f"would change {f}" for f in rewritten]
+    lines += [ln.rstrip() for ln in output.splitlines() if re.search(step.errors, ln)]
+    if rewritten:
+        detail = detail or f"would change {len(rewritten)} file(s)"
+    elif not detail:
         detail = f"{len(lines)} error line(s)" if lines else f"exit code {p.returncode}"
     excerpt = lines[:EXCERPT_LINES] or output.strip().splitlines()[-EXCERPT_LINES:]
     if len(lines) > EXCERPT_LINES:
@@ -175,6 +199,8 @@ def main() -> int:
     ap.add_argument("--list", action="store_true", help="list the steps and exit")
     ap.add_argument("--config", type=Path, default=None)
     args = ap.parse_args()
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(errors="replace")
 
     root = Path(_git(Path.cwd(), "rev-parse", "--show-toplevel").strip() or Path.cwd())
     steps, base = load_steps(root, args.config)

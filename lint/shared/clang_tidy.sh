@@ -57,6 +57,42 @@ else
   FILTER=("^$(path_re "$ROOT")${S}(?!(build|install|log|third_party|vendor|Drivers)${S})")
 fi
 
+count_matching_entries() {
+  local py c dbs=()
+  for c in python3 python; do "$c" -c '' >/dev/null 2>&1 && { py="$c"; break; }; done
+  [[ -n "${py:-}" ]] || { echo unknown; return; }
+  for c in "${DBS[@]}"; do dbs+=("$(native_path "$c")"); done
+  "$py" - "${#FILTER[@]}" "${FILTER[@]}" "${dbs[@]}" <<'EOF'
+import json, os, re, sys
+n = int(sys.argv[1])
+pattern = re.compile("|".join(sys.argv[2 : 2 + n]))
+names = set()
+for db in sys.argv[2 + n :]:
+    with open(db, encoding="utf-8") as f:
+        for e in json.load(f):
+            name = e["file"]
+            if not os.path.isabs(name):
+                name = os.path.normpath(os.path.join(e["directory"], name))
+            if pattern.search(name):
+                names.add(name)
+print(len(names))
+EOF
+}
+
+if [[ "$(count_matching_entries)" == 0 ]]; then
+  if [[ $# -gt 0 ]]; then what="none of the files to check is"; else what="no file under $ROOT is"; fi
+  {
+    echo "clang-tidy: $what in a compile_commands.json under $BUILD_DIR, so nothing would be checked."
+    echo "Usual cause: that build was configured from another checkout of this repo (a git worktree or"
+    echo "another clone), or the files are new since the last build."
+    echo "Fix: build from this checkout, or set BUILD_DIR to this checkout's build folder."
+    echo "ROS 2:    colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    echo "Firmware: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build build"
+    echo "To push without this check once: SKIP=clang-tidy git push"
+  } >&2
+  exit 2
+fi
+
 status=0
 for db in "${DBS[@]}"; do
   if [[ -n "${RUN_CLANG_TIDY:-}" ]]; then

@@ -38,6 +38,7 @@ for profile in ros2 firmware rust rust-embedded python typst astro; do
   check "Claude subagents generated"         'head -2 "$R/.claude/agents/reviewer.md" | grep -qx "name: reviewer"'
   check "reviewer can't edit files"          'grep -qx "tools: Read, Grep, Glob, Bash" "$R/.claude/agents/reviewer.md"'
   check "./check wrapper pinned"             'grep -q "rev=\"$EXPECTED_REV\"" "$R/check" && [[ -x "$R/check" ]]'
+  check "./check keeps LF endings"           'grep -qxF "/check text eol=lf" "$R/.gitattributes"'
   check ".dev-check/ ignored"                'grep -qx ".dev-check/" "$R/.gitignore"'
   check ".gitignore has entries"             '[[ -s "$R/.gitignore" ]]'
   check "_typos.toml copied (British spelling)" 'grep -qx "locale = \"en-gb\"" "$R/_typos.toml"'
@@ -50,6 +51,7 @@ for profile in ros2 firmware rust rust-embedded python typst astro; do
 done
 
 case "$(ls "$TMP/ros2/.devcontainer" 2>/dev/null)" in *Dockerfile*) echo "  ok   ros2 devcontainer copied";; *) echo "  FAIL ros2 devcontainer"; fail=1;; esac
+check "ros2 shell scripts keep LF endings" 'grep -qxF "/.vscode/post_build.sh text eol=lf" "$TMP/ros2/.gitattributes" && grep -qxF "/.vscode/ros_bashrc text eol=lf" "$TMP/ros2/.gitattributes"'
 [[ -f "$TMP/firmware/cmake/warnings.cmake" ]] && echo "  ok   firmware warnings.cmake in cmake/" || { echo "  FAIL firmware warnings.cmake"; fail=1; }
 grep -q "disallowed-macros" "$TMP/rust-embedded/clippy.toml" && echo "  ok   rust-embedded uses embedded clippy.toml" || { echo "  FAIL rust-embedded clippy.toml"; fail=1; }
 [[ -f "$TMP/astro/eslint.config.mjs" && -f "$TMP/astro/.prettierrc.json" ]] && echo "  ok   astro ESLint and Prettier configs copied" || { echo "  FAIL astro configs"; fail=1; }
@@ -88,4 +90,18 @@ echo "== typst-compile with no entry documents needs no typst"
 mkdir -p "$TMP/fakebin"; printf '#!/bin/sh\nexit 99\n' > "$TMP/fakebin/typst"; chmod +x "$TMP/fakebin/typst"
 printf '# no documents yet\n' > "$TMP/typst/.typst-entries"
 check "exits 0 before it calls typst"       '(cd "$TMP/typst" && PATH="$TMP/fakebin:$PATH" bash "$KIT/lint/shared/typst_compile.sh" | grep -q "no entry documents")'
+echo "== clang_tidy.sh fails when the build is from another checkout"
+CT="$TMP/ct"; mkdir -p "$CT/src" "$CT/build" "$TMP/other"; git -C "$CT" init -q; CT="$(cd "$CT" && pwd -P)"
+printf 'int main() { return 0; }\n' > "$CT/src/a.cpp"
+printf '#!/bin/sh\necho "runner ran"\n' > "$TMP/fakebin/run-clang-tidy"
+printf '#!/bin/sh\nexit 0\n' > "$TMP/fakebin/clang-tidy"; chmod +x "$TMP/fakebin/run-clang-tidy" "$TMP/fakebin/clang-tidy"
+ct() { (cd "$CT" && CLANG_TIDY="$TMP/fakebin/clang-tidy" RUN_CLANG_TIDY="$TMP/fakebin/run-clang-tidy" bash "$KIT/lint/shared/clang_tidy.sh" "$@" 2>&1); }
+db() { printf '[{"directory": "%s", "file": "src/a.cpp", "command": "c++ -c src/a.cpp"}]\n' "$1" > "$CT/build/compile_commands.json"; }
+db "$(cd "$TMP/other" && pwd -P)"
+check "changed file not in the build: fails"  '! ct src/a.cpp >/dev/null'
+check "... and names the cause"               'ct src/a.cpp | grep -q "another checkout of this repo"'
+check "whole repo not in the build: fails"    '! ct >/dev/null'
+db "$CT"
+check "file in the build: clang-tidy runs"    '[[ "$(ct src/a.cpp)" == "runner ran" ]]'
+check "whole repo in the build: clang-tidy runs" '[[ "$(ct)" == "runner ran" ]]'
 exit $fail

@@ -236,6 +236,13 @@ fi
 touch "$REPO/.gitignore"
 for g in "${IGNORE[@]}" .dev-check/; do grep -qxF "$g" "$REPO/.gitignore" || echo "$g" >> "$REPO/.gitignore"; done
 
+for rel in "${copied[@]}"; do
+  [[ "$rel" != "(workspace) "* && -f "$REPO/$rel" ]] || continue
+  [[ "$(head -c2 "$REPO/$rel")" == '#!' || "$rel" == *bashrc ]] || continue
+  attr="/$rel text eol=lf"
+  grep -qxF "$attr" "$REPO/.gitattributes" 2>/dev/null || echo "$attr" >> "$REPO/.gitattributes"
+done
+
 printf 'profile=%s\nkit_version=%s\nadopted=%s\n' "$PROFILE" "$VERSION" "$(date +%F)" > "$REPO/.dev-tooling-version"
 
 if command -v pre-commit >/dev/null && [[ -f "$REPO/.pre-commit-config.yaml" ]]; then
