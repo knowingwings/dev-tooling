@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.6.0 (2026-11-23)
+
+**New: shared VS Code settings for windows and Claude Code**
+- New windows open in the ROS2 profile (`window.newWindowProfile`).
+- Claude Code opens in the panel, in terminal mode (`claudeCode.preferredLocation` and
+  `claudeCode.useTerminal`).
 
 **New: `multiline` rules in `patterns.toml`**
 - A rule with `multiline = true` is matched against the whole file, not one line at a time. Its
