@@ -99,7 +99,7 @@ ct() { (cd "$CT" && CLANG_TIDY="$TMP/fakebin/clang-tidy" RUN_CLANG_TIDY="$TMP/fa
 db() { printf '[{"directory": "%s", "file": "src/a.cpp", "command": "c++ -c src/a.cpp"}]\n' "$1" > "$CT/build/compile_commands.json"; }
 db "$(cd "$TMP/other" && pwd -P)"
 check "changed file not in the build: fails"  '! ct src/a.cpp >/dev/null'
-check "... and names the cause"               'ct src/a.cpp | grep -q "another checkout of this repo"'
+check "... and names the cause"               'grep -q "another checkout of this repo" <<< "$(ct src/a.cpp)"'
 check "whole repo not in the build: fails"    '! ct >/dev/null'
 db "$CT"
 check "file in the build: clang-tidy runs"    '[[ "$(ct src/a.cpp)" == "runner ran" ]]'

@@ -161,8 +161,8 @@ class DevCheck(unittest.TestCase):
             env = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONUTF8": "0"}
             env["PYTHONIOENCODING"] = "cp1252"
             p = subprocess.run(
-                [sys.executable, "-X", "warn_default_encoding", "-W", "error::EncodingWarning"]
-                + ["-m", "dev_tooling.check"],
+                [sys.executable, "-X", "warn_default_encoding", "-W", "error::EncodingWarning",
+                 "-m", "dev_tooling.check"],
                 cwd=d,
                 capture_output=True,
                 check=False,
