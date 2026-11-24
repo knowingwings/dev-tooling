@@ -59,3 +59,10 @@ docs/        SETUP.md
 ```
 
 Platforms: Linux (Ubuntu, Arch/Omarchy), macOS, Windows (Git Bash for scripts, WSL2 or Docker for ROS 2).
+
+## Licence
+
+The kit is licensed under the Apache License 2.0. See `LICENSE` and `NOTICE`.
+You can use it, change it and ship it, including in closed-source work.
+If you pass on a copy, keep the licence and the `NOTICE` file with it, and mark the files you changed.
+Contributions are accepted under the same licence.
